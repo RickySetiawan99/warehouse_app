@@ -12,14 +12,14 @@
 
     <form method="GET" action="{{ route('inbound') }}" class="flex items-center gap-2">
       <input type="text" name="search" value="{{ $search }}" placeholder="Cari No. PO / Supplier..."
-             class="flat-input rounded-lg px-3.5 py-2 text-xs font-bold w-56">
-      <button type="submit" class="flat-btn flat-surface-alt rounded-lg px-3.5 py-2 text-xs font-extrabold">Cari</button>
+             class="flat-input min-h-[44px] rounded-lg px-3.5 py-2 text-xs font-bold w-56">
+      <button type="submit" class="flat-btn flat-surface-alt min-h-[44px] rounded-lg px-4 py-2 text-xs font-extrabold">Cari</button>
     </form>
   </div>
 
   @if(session('price_alerts'))
     <div class="rounded-xl border-2 p-4 space-y-1.5" style="background-color: var(--wms-warn-bg); border-color: var(--wms-warn-border); color: var(--wms-warn-text);">
-      <div class="text-xs font-extrabold uppercase tracking-wider">Peringatan Kenaikan Harga Beli</div>
+      <div class="text-xs font-extrabold">Peringatan kenaikan harga beli</div>
       @foreach(session('price_alerts') as $alert)
         <div class="text-xs font-semibold">• {{ $alert['product_name'] ?? 'Produk' }}: {{ $alert['message'] ?? 'Harga beli berubah.' }}</div>
       @endforeach
@@ -29,19 +29,19 @@
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
     <!-- Left PO Queue -->
     <section class="lg:col-span-4 flat-surface rounded-xl p-4 space-y-3">
-      <h2 class="text-xs font-extrabold uppercase tracking-wider border-b pb-2" style="border-color: var(--wms-divider);">Daftar PO Terbuka ({{ count($poList) }})</h2>
+      <h2 class="text-sm font-extrabold">Daftar PO Terbuka ({{ count($poList) }})</h2>
       <div class="space-y-2">
         @forelse($poList as $po)
           @php $isSelected = (string) ($activePo['id'] ?? $selectedId) === (string) $po['id']; @endphp
           <a href="{{ route('inbound.show', $po['id']) }}"
-             class="flat-btn rounded-lg p-3 block border"
+             class="flat-btn min-h-[56px] rounded-lg p-3 block border"
              style="background-color: {{ $isSelected ? 'var(--wms-accent)' : 'var(--wms-surface-alt)' }}; color: {{ $isSelected ? 'var(--wms-accent-ink)' : 'var(--wms-text)' }}; border-color: {{ $isSelected ? 'var(--wms-accent)' : 'var(--wms-divider)' }};">
             <div class="flex items-center justify-between gap-2">
               <span class="font-code text-xs font-extrabold">{{ $po['po_number'] }}</span>
-              <span class="font-code text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-black/15">{{ $po['status'] }}</span>
+              <span class="font-code text-xs font-bold px-1.5 py-0.5 rounded bg-black/15">{{ $po['status'] }}</span>
             </div>
             <div class="text-xs font-bold mt-1">{{ $po['supplier_name'] }}</div>
-            <div class="text-[11px] opacity-80 mt-0.5">{{ $po['warehouse_name'] }} · {{ $po['total_items'] }} item</div>
+            <div class="text-xs opacity-80 mt-0.5">{{ $po['warehouse_name'] }} · {{ $po['total_items'] }} item</div>
           </a>
         @empty
           <p class="text-xs py-6 text-center" style="color: var(--wms-muted);">Tidak ada PO terbuka.</p>
@@ -56,21 +56,30 @@
           <div>
             <div class="font-code text-xs font-extrabold" style="color: var(--wms-accent-text);">{{ $activePo['po_number'] }}</div>
             <h2 class="text-lg font-extrabold tracking-tight">{{ $activePo['supplier']['name'] ?? 'Supplier' }}</h2>
-            <p class="text-xs" style="color: var(--wms-muted);">Tujuan: {{ $activePo['warehouse']['name'] ?? 'Gudang' }} · Status: <span class="font-code font-bold uppercase">{{ $activePo['status'] }}</span></p>
+            <p class="text-xs" style="color: var(--wms-muted);">Tujuan: {{ $activePo['warehouse']['name'] ?? 'Gudang' }} · Status: <span class="font-code font-bold">{{ $activePo['status'] }}</span></p>
           </div>
-          <div class="flex items-center gap-2">
-            <input type="text" id="inbound-quick-sku" data-scan-input placeholder="Scan SKU di PO..."
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <input type="text" id="inbound-quick-sku" data-scan-input data-scan-mode="inbound-sku" placeholder="Scan SKU di PO..."
                    onkeydown="if(event.key==='Enter'){event.preventDefault();window.highlightInboundSku(this.value);}"
-                   class="flat-input rounded-lg px-3 py-2 text-xs font-code font-bold w-44">
+                   class="flat-input min-w-0 min-h-[44px] rounded-lg px-3 py-2 text-xs font-code font-bold flex-1 sm:w-44">
+            <button type="button" data-camera-scan-btn onclick="window.openCameraScanner(this)"
+                    class="hidden flat-btn flat-surface-alt min-h-[44px] px-3 py-2 rounded-lg text-xs font-extrabold items-center justify-center gap-1.5 shrink-0"
+                    title="Scan barcode dengan kamera" aria-label="Scan barcode dengan kamera">
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+              </svg>
+              <span>Kamera</span>
+            </button>
           </div>
         </div>
 
         <form method="POST" action="{{ route('inbound.receive', $activePo['id']) }}" class="space-y-4">
           @csrf
           <div class="flex items-center gap-3">
-            <label for="received_date" class="text-xs font-bold uppercase tracking-wider" style="color: var(--wms-muted);">Tanggal Terima</label>
+            <label for="received_date" class="text-xs font-bold" style="color: var(--wms-muted);">Tanggal terima</label>
             <input id="received_date" name="received_date" type="date" value="{{ old('received_date', now()->toDateString()) }}"
-                   class="flat-input rounded-lg px-3 py-1.5 text-xs font-code font-bold">
+                   class="flat-input min-h-[44px] rounded-lg px-3 py-1.5 text-xs font-code font-bold">
           </div>
 
           <div class="space-y-3">
@@ -82,37 +91,37 @@
 
                 <div class="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <div class="font-code text-[11px] font-bold" style="color: var(--wms-accent-text);">{{ $item['sku'] ?? '-' }}</div>
+                    <div class="font-code text-xs font-bold" style="color: var(--wms-accent-text);">{{ $item['sku'] ?? '-' }}</div>
                     <div class="text-sm font-extrabold">{{ $item['product_name'] ?? '-' }}</div>
                   </div>
-                  <div class="font-code text-xs text-right">
+                  <div class="font-code text-xs text-end">
                     <div>Pesan: <strong>{{ $item['ordered_qty'] ?? 0 }}</strong> {{ $item['unit_name'] ?? '' }}</div>
                     <div style="color: var(--wms-muted);">Sisa: <strong>{{ $remaining }}</strong></div>
                   </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label class="block text-[10px] font-bold uppercase mb-1" style="color: var(--wms-muted);">Qty Diterima ({{ $item['unit_name'] ?? '' }})</label>
+                    <label class="block text-xs font-bold mb-1" style="color: var(--wms-muted);">Qty diterima ({{ $item['unit_name'] ?? '' }})</label>
                     <input type="number" step="0.01" min="0" name="items[{{ $idx }}][received_qty]" value="{{ old("items.{$idx}.received_qty", $remaining) }}"
-                           class="flat-input w-full rounded-lg px-3 py-2 text-sm font-code font-extrabold">
+                           class="flat-input min-h-[48px] w-full rounded-lg px-3 py-2 text-sm font-code font-extrabold">
                   </div>
                   <div>
-                    <label class="block text-[10px] font-bold uppercase mb-1" style="color: var(--wms-muted);">No. Batch</label>
+                    <label class="block text-xs font-bold mb-1" style="color: var(--wms-muted);">No. batch</label>
                     <input type="text" name="items[{{ $idx }}][batch_number]" value="{{ old("items.{$idx}.batch_number") }}" placeholder="BCH-..."
-                           class="flat-input w-full rounded-lg px-3 py-2 text-sm font-code">
+                           class="flat-input min-h-[48px] w-full rounded-lg px-3 py-2 text-sm font-code">
                   </div>
                   <div>
-                    <label class="block text-[10px] font-bold uppercase mb-1" style="color: var(--wms-muted);">Kadaluarsa</label>
+                    <label class="block text-xs font-bold mb-1" style="color: var(--wms-muted);">Kadaluarsa</label>
                     <input type="date" name="items[{{ $idx }}][expiration_date]" value="{{ old("items.{$idx}.expiration_date", $item['default_expiration_date'] ?? '') }}"
-                           class="flat-input w-full rounded-lg px-3 py-2 text-sm font-code">
+                           class="flat-input min-h-[48px] w-full rounded-lg px-3 py-2 text-sm font-code">
                   </div>
                 </div>
               </div>
             @endforeach
           </div>
 
-          <button type="submit" class="flat-btn w-full rounded-lg py-3.5 px-4 text-sm font-extrabold uppercase tracking-wide" style="background-color: var(--wms-ok); color: var(--wms-ok-ink);">
+          <button type="submit" class="flat-btn w-full min-h-[50px] rounded-lg py-3.5 px-4 text-sm font-extrabold" style="background-color: var(--wms-ok); color: var(--wms-ok-ink);">
             Konfirmasi &amp; Terima Barang PO
           </button>
         </form>

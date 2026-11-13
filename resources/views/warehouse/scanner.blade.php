@@ -13,13 +13,24 @@
 
   <!-- Barcode Scanner Input Card -->
   <section class="flat-surface rounded-xl p-4 sm:p-5 space-y-3">
-    <form method="GET" action="{{ route('scanner') }}" class="flex flex-col sm:flex-row gap-2.5">
+    <form method="GET" action="{{ route('scanner') }}" class="flex flex-col sm:flex-row gap-3">
       <input type="text" name="barcode" value="{{ $barcode }}" data-scan-input autofocus required
              placeholder="Arahkan scanner ke barcode atau ketik SKU..."
-             class="flat-input rounded-lg px-4 py-3 text-base font-code font-bold flex-1">
-      <button type="submit" class="flat-btn flat-hover-accent rounded-lg px-6 py-3 text-sm font-extrabold uppercase tracking-wide shrink-0" style="background-color: var(--wms-accent); color: var(--wms-accent-ink);">
-        Scan / Cari Barang
-      </button>
+             class="flat-input min-w-0 min-h-[48px] rounded-lg px-4 py-3 text-base font-code font-bold flex-1">
+      <div class="flex items-center gap-2 shrink-0">
+        <button type="button" data-camera-scan-btn onclick="window.openCameraScanner(this)"
+                class="hidden flat-btn flat-surface-alt min-h-[48px] px-4 py-3 rounded-lg text-sm font-extrabold items-center justify-center gap-2 shrink-0"
+                title="Scan barcode dengan kamera" aria-label="Scan barcode dengan kamera">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          <span>Kamera</span>
+        </button>
+        <button type="submit" class="flat-btn flat-hover-accent min-h-[48px] rounded-lg px-6 py-3 text-sm font-extrabold flex-1 sm:flex-initial shrink-0" style="background-color: var(--wms-accent); color: var(--wms-accent-ink);">
+          Scan / Cari Barang
+        </button>
+      </div>
     </form>
   </section>
 
@@ -54,18 +65,18 @@
               </p>
             </div>
 
-            <a href="{{ route('opname', ['barcode' => $barcode]) }}" class="flat-btn rounded-lg px-4 py-2.5 text-xs font-extrabold uppercase tracking-wide" style="background-color: var(--wms-ok); color: var(--wms-ok-ink);">
+            <a href="{{ route('opname', ['barcode' => $barcode]) }}" class="flat-btn min-h-[44px] flex items-center rounded-lg px-4 py-2.5 text-xs font-extrabold" style="background-color: var(--wms-ok); color: var(--wms-ok-ink);">
               Hitung Opname Produk Ini →
             </a>
           </div>
 
           <div class="grid grid-cols-2 gap-3">
             <div class="flat-surface-alt rounded-lg p-3.5">
-              <div class="text-[11px] font-bold uppercase tracking-wider" style="color: var(--wms-muted);">Total Stok Semua Gudang</div>
+              <div class="text-xs font-bold" style="color: var(--wms-muted);">Total Stok Semua Gudang</div>
               <div class="text-2xl font-extrabold font-code tabular-nums mt-1">{{ $scanResult['total_stock'] ?? 0 }} <span class="text-xs font-bold">{{ $baseUnit['name'] ?? '' }}</span></div>
             </div>
             <div class="flat-surface-alt rounded-lg p-3.5">
-              <div class="text-[11px] font-bold uppercase tracking-wider" style="color: var(--wms-muted);">Stok Gudang Aktif</div>
+              <div class="text-xs font-bold" style="color: var(--wms-muted);">Stok Gudang Aktif</div>
               <div class="text-2xl font-extrabold font-code tabular-nums mt-1" style="color: var(--wms-ok-text);">
                 {{ $scanResult['selected_warehouse_stock'] ?? $scanResult['total_stock'] ?? 0 }} <span class="text-xs font-bold">{{ $baseUnit['name'] ?? '' }}</span>
               </div>
@@ -74,13 +85,13 @@
 
           <!-- Units Table -->
           <div class="space-y-2">
-            <h3 class="text-xs font-extrabold uppercase tracking-wider" style="color: var(--wms-muted);">Daftar Satuan &amp; Barcode</h3>
+            <h3 class="text-xs font-extrabold" style="color: var(--wms-muted);">Daftar Satuan &amp; Barcode</h3>
             <div class="space-y-1.5">
               @foreach($units as $unit)
                 <div class="flat-surface-alt rounded-lg px-3.5 py-2.5 flex items-center justify-between gap-2 text-xs">
                   <div>
                     <span class="font-extrabold">{{ $unit['name'] }}</span>
-                    <span class="font-code ml-1.5" style="color: var(--wms-muted);">×{{ $unit['conversion_ratio'] }}</span>
+                    <span class="font-code ms-1.5" style="color: var(--wms-muted);">×{{ $unit['conversion_ratio'] }}</span>
                   </div>
                   <div class="font-code font-bold">{{ $unit['barcode'] ?: 'Tanpa Barcode' }}</div>
                 </div>
@@ -93,7 +104,7 @@
       <!-- Warehouse Breakdown & FEFO Batches -->
       <div class="lg:col-span-5 space-y-4">
         <section class="flat-surface rounded-xl p-5 space-y-3">
-          <h3 class="text-xs font-extrabold uppercase tracking-wider" style="color: var(--wms-muted);">Stok per Gudang</h3>
+          <h3 class="text-xs font-extrabold" style="color: var(--wms-muted);">Stok per Gudang</h3>
           <div class="space-y-2">
             @forelse($stockByWh as $wh)
               <div class="flat-surface-alt rounded-lg px-3.5 py-2.5 flex items-center justify-between text-xs font-bold">
@@ -107,7 +118,7 @@
         </section>
 
         <section class="flat-surface rounded-xl p-5 space-y-3">
-          <h3 class="text-xs font-extrabold uppercase tracking-wider" style="color: var(--wms-muted);">Batch &amp; Kadaluarsa (FEFO)</h3>
+          <h3 class="text-xs font-extrabold" style="color: var(--wms-muted);">Batch &amp; Kadaluarsa (FEFO)</h3>
           <div class="space-y-2">
             @forelse($batches as $batch)
               @php
@@ -120,14 +131,14 @@
                   <div class="font-code font-extrabold">{{ $batch['batch_number'] ?: 'TANPA-BATCH' }}</div>
                   <div style="color: var(--wms-muted);">{{ $batch['warehouse_name'] }} · Exp: {{ $batch['expiration_date'] ?: '-' }}</div>
                 </div>
-                <div class="text-right">
+                <div class="text-end">
                   <div class="font-code font-extrabold text-sm">{{ $batch['quantity'] }}</div>
                   @if($isExpired)
-                    <span class="font-code text-[10px] font-extrabold uppercase" style="color: var(--wms-err-text);">KADALUARSA</span>
+                    <span class="font-code text-xs font-extrabold" style="color: var(--wms-err-text);">KADALUARSA</span>
                   @elseif($isNear)
-                    <span class="font-code text-[10px] font-extrabold uppercase" style="color: var(--wms-warn-text);">{{ $daysLeft }} HARI LAGI</span>
+                    <span class="font-code text-xs font-extrabold" style="color: var(--wms-warn-text);">{{ $daysLeft }} HARI LAGI</span>
                   @else
-                    <span class="font-code text-[10px] font-extrabold uppercase" style="color: var(--wms-ok-text);">AMAN</span>
+                    <span class="font-code text-xs font-extrabold" style="color: var(--wms-ok-text);">AMAN</span>
                   @endif
                 </div>
               </div>

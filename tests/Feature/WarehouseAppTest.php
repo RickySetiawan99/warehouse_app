@@ -142,7 +142,10 @@ class WarehouseAppTest extends TestCase
             ->assertStatus(200)
             ->assertSee('PO-2026-005')
             ->assertSee('ORD-00008')
-            ->assertSee('TRF-003');
+            ->assertSee('TRF-003')
+            ->assertSee('id="camera-scanner-modal"', false)
+            ->assertSee('data-camera-scan-btn', false)
+            ->assertSee('window.detectCameraSupport', false);
     }
 
     public function test_scanner_displays_product_and_fefo_batches(): void
@@ -187,7 +190,9 @@ class WarehouseAppTest extends TestCase
             ->assertSee('Minyak Goreng Bimoli 2L')
             ->assertSee('SKU-MNY-2L')
             ->assertSee('BCH-NOV-01')
-            ->assertSee('84');
+            ->assertSee('84')
+            ->assertSee('id="camera-scanner-modal"', false)
+            ->assertSee('data-camera-scan-btn', false);
     }
 
     public function test_staff_can_submit_stock_opname_count(): void
@@ -269,7 +274,9 @@ class WarehouseAppTest extends TestCase
             ->get('/inbound/5')
             ->assertStatus(200)
             ->assertSee('PO-2026-005')
-            ->assertSee('Indomie Goreng Dus');
+            ->assertSee('Indomie Goreng Dus')
+            ->assertSee('data-camera-scan-btn', false)
+            ->assertSee('data-scan-mode="inbound-sku"', false);
 
         $receiveResponse = $this->withSession($this->warehouseSession())
             ->post('/inbound/5/receive', [
@@ -350,7 +357,8 @@ class WarehouseAppTest extends TestCase
             ->get('/picking/8')
             ->assertStatus(200)
             ->assertSee('ORD-00008')
-            ->assertSee('Teh Botol Sosro 250ml');
+            ->assertSee('Teh Botol Sosro 250ml')
+            ->assertSee('data-camera-scan-btn', false);
 
         $verifyOk = $this->withSession($this->warehouseSession())
             ->post('/picking/8/verify', ['barcode' => '899222333444']);
