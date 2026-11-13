@@ -251,6 +251,27 @@
       display: none;
     }
 
+    /* Desktop Rail, Tablet Tabs, Theme & Flash State via ARIA attributes */
+    [id^="rail-nav-"][aria-current="page"],
+    [id^="rail-nav-"][aria-current="page"]:hover,
+    [id^="tab-nav-"][aria-current="page"],
+    #desk-theme-dark[aria-pressed="true"],
+    #desk-theme-light[aria-pressed="true"],
+    #flash-toggle[aria-pressed="true"],
+    #mob-flash-btn[aria-pressed="true"] {
+      background-color: var(--wms-accent);
+      color: var(--wms-accent-ink);
+      border-color: var(--wms-accent);
+    }
+
+    [id^="rail-nav-"][aria-current="page"] .font-code {
+      color: var(--wms-accent-ink);
+    }
+
+    #flash-toggle[aria-pressed="true"] {
+      font-weight: 800;
+    }
+
     /* Safe bottom space above fixed mobile nav */
     .mobile-content-pad {
       padding-bottom: calc(5.75rem + env(safe-area-inset-bottom));
@@ -351,9 +372,9 @@
         </div>
 
         <nav class="mt-4 space-y-1.5" aria-label="Menu utama aplikasi gudang">
-          <button type="button" onclick="switchScreen('dashboard')" id="rail-nav-dashboard" aria-current="page" class="flat-btn flat-hover-surface w-full min-h-[46px] px-3 rounded-lg text-left text-sm font-bold flex items-center justify-between bg-[var(--wms-accent)] text-[var(--wms-accent-ink)]">
+          <button type="button" onclick="switchScreen('dashboard')" id="rail-nav-dashboard" aria-current="page" class="flat-btn flat-hover-surface w-full min-h-[46px] px-3 rounded-lg text-left text-sm font-bold flex items-center justify-between text-[var(--wms-text)]">
             <span>Beranda Shift</span>
-            <span class="font-code text-xs">1</span>
+            <span class="font-code text-xs text-[var(--wms-muted)]">1</span>
           </button>
           <button type="button" onclick="switchScreen('scanner')" id="rail-nav-scanner" class="flat-btn flat-hover-surface w-full min-h-[46px] px-3 rounded-lg text-left text-sm font-bold flex items-center justify-between text-[var(--wms-text)]">
             <span>Quick Scanner</span>
@@ -382,10 +403,10 @@
         <div>
           <p class="text-xs font-bold text-[var(--wms-muted)] mb-2">Kondisi Cahaya</p>
           <div class="grid grid-cols-2 gap-2">
-            <button type="button" onclick="setWmsTheme('dark')" id="desk-theme-dark" class="flat-btn min-h-[44px] px-2.5 rounded-md text-xs font-bold bg-[var(--wms-accent)] text-[var(--wms-accent-ink)]">
+            <button type="button" onclick="setWmsTheme('dark')" id="desk-theme-dark" aria-pressed="true" class="flat-btn flat-surface-alt min-h-[44px] px-2.5 rounded-md text-xs font-bold text-[var(--wms-text)]">
               Lorong Gelap
             </button>
-            <button type="button" onclick="setWmsTheme('light')" id="desk-theme-light" class="flat-btn flat-surface-alt min-h-[44px] px-2.5 rounded-md text-xs font-bold text-[var(--wms-text)]">
+            <button type="button" onclick="setWmsTheme('light')" id="desk-theme-light" aria-pressed="false" class="flat-btn flat-surface-alt min-h-[44px] px-2.5 rounded-md text-xs font-bold text-[var(--wms-text)]">
               Loading Terang
             </button>
           </div>
@@ -452,7 +473,7 @@
 
         <!-- TABLET TOP TABS (768px - 1023px) -->
         <nav class="hidden md:flex lg:hidden items-center gap-1.5 px-4 pb-2.5 overflow-x-auto" aria-label="Navigasi modul tablet">
-          <button type="button" onclick="switchScreen('dashboard')" id="tab-nav-dashboard" aria-current="page" class="flat-btn min-h-[44px] px-3.5 rounded-md text-xs font-bold bg-[var(--wms-accent)] text-[var(--wms-accent-ink)] shrink-0">Beranda</button>
+          <button type="button" onclick="switchScreen('dashboard')" id="tab-nav-dashboard" aria-current="page" class="flat-btn flat-surface-alt min-h-[44px] px-3.5 rounded-md text-xs font-bold shrink-0">Beranda</button>
           <button type="button" onclick="switchScreen('scanner')" id="tab-nav-scanner" class="flat-btn flat-surface-alt min-h-[44px] px-3.5 rounded-md text-xs font-bold shrink-0">Scan Barcode</button>
           <button type="button" onclick="switchScreen('opname')" id="tab-nav-opname" class="flat-btn flat-surface-alt min-h-[44px] px-3.5 rounded-md text-xs font-bold shrink-0">Stock Opname</button>
           <button type="button" onclick="switchScreen('inbound')" id="tab-nav-inbound" class="flat-btn flat-surface-alt min-h-[44px] px-3.5 rounded-md text-xs font-bold shrink-0">Inbound PO</button>
@@ -1118,6 +1139,11 @@
     };
 
     let sharedAudioCtx = null;
+    const BEEP_PROFILES = {
+      success: { type: 'sine', freq: 1046.5, peak: 0.11, duration: 0.11 },
+      error: { type: 'sawtooth', freq: 220, peak: 0.14, duration: 0.18 },
+    };
+
     function playBeep(type = 'success') {
       try {
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -1125,27 +1151,18 @@
         if (!sharedAudioCtx) sharedAudioCtx = new AudioCtx();
         if (sharedAudioCtx.state === 'suspended') sharedAudioCtx.resume();
 
+        const cfg = BEEP_PROFILES[type] || BEEP_PROFILES.error;
+        const now = sharedAudioCtx.currentTime;
         const osc = sharedAudioCtx.createOscillator();
         const gain = sharedAudioCtx.createGain();
-        if (type === 'success') {
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(1046.5, sharedAudioCtx.currentTime);
-          gain.gain.setValueAtTime(0.11, sharedAudioCtx.currentTime);
-          gain.gain.linearRampToValueAtTime(0.001, sharedAudioCtx.currentTime + 0.11);
-          osc.connect(gain);
-          gain.connect(sharedAudioCtx.destination);
-          osc.start();
-          osc.stop(sharedAudioCtx.currentTime + 0.11);
-        } else {
-          osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(220, sharedAudioCtx.currentTime);
-          gain.gain.setValueAtTime(0.14, sharedAudioCtx.currentTime);
-          gain.gain.linearRampToValueAtTime(0.001, sharedAudioCtx.currentTime + 0.18);
-          osc.connect(gain);
-          gain.connect(sharedAudioCtx.destination);
-          osc.start();
-          osc.stop(sharedAudioCtx.currentTime + 0.18);
-        }
+        osc.type = cfg.type;
+        osc.frequency.setValueAtTime(cfg.freq, now);
+        gain.gain.setValueAtTime(cfg.peak, now);
+        gain.gain.linearRampToValueAtTime(0.001, now + cfg.duration);
+        osc.connect(gain);
+        gain.connect(sharedAudioCtx.destination);
+        osc.start();
+        osc.stop(now + cfg.duration);
       } catch (e) {}
     }
 
@@ -1247,15 +1264,8 @@
 
       const darkBtn = document.getElementById('desk-theme-dark');
       const lightBtn = document.getElementById('desk-theme-light');
-      if (darkBtn && lightBtn) {
-        if (mode === 'dark') {
-          darkBtn.className = 'flat-btn min-h-[44px] px-2.5 rounded-md text-xs font-bold bg-[var(--wms-accent)] text-[var(--wms-accent-ink)]';
-          lightBtn.className = 'flat-btn flat-surface-alt min-h-[44px] px-2.5 rounded-md text-xs font-bold text-[var(--wms-text)]';
-        } else {
-          lightBtn.className = 'flat-btn min-h-[44px] px-2.5 rounded-md text-xs font-bold bg-[var(--wms-accent)] text-[var(--wms-accent-ink)]';
-          darkBtn.className = 'flat-btn flat-surface-alt min-h-[44px] px-2.5 rounded-md text-xs font-bold text-[var(--wms-text)]';
-        }
-      }
+      if (darkBtn) darkBtn.setAttribute('aria-pressed', mode === 'dark' ? 'true' : 'false');
+      if (lightBtn) lightBtn.setAttribute('aria-pressed', mode === 'light' ? 'true' : 'false');
     }
 
     function toggleWmsTheme() {
@@ -1296,22 +1306,11 @@
       document.getElementById('mob-top-back').classList.toggle('hidden', isHome);
       document.getElementById('mob-flash-btn').classList.toggle('hidden', screenName !== 'scanner');
 
-      // Desktop Rail Sync
-      document.querySelectorAll('[id^="rail-nav-"]').forEach((btn) => {
-        const isActive = btn.id === 'rail-nav-' + screenName;
-        btn.setAttribute('aria-current', isActive ? 'page' : 'false');
-        btn.className = isActive
-          ? 'flat-btn flat-hover-surface w-full min-h-[46px] px-3 rounded-lg text-left text-sm font-bold flex items-center justify-between bg-[var(--wms-accent)] text-[var(--wms-accent-ink)]'
-          : 'flat-btn flat-hover-surface w-full min-h-[46px] px-3 rounded-lg text-left text-sm font-bold flex items-center justify-between text-[var(--wms-text)]';
-      });
-
-      // Tablet Top Tabs Sync
-      document.querySelectorAll('[id^="tab-nav-"]').forEach((btn) => {
-        const isActive = btn.id === 'tab-nav-' + screenName;
-        btn.setAttribute('aria-current', isActive ? 'page' : 'false');
-        btn.className = isActive
-          ? 'flat-btn min-h-[44px] px-3.5 rounded-md text-xs font-bold bg-[var(--wms-accent)] text-[var(--wms-accent-ink)] shrink-0'
-          : 'flat-btn flat-surface-alt min-h-[44px] px-3.5 rounded-md text-xs font-bold shrink-0';
+      // Desktop Rail & Tablet Top Tabs Sync (styled via [aria-current="page"] in CSS)
+      ['rail-nav-', 'tab-nav-'].forEach((prefix) => {
+        document.querySelectorAll(`[id^="${prefix}"]`).forEach((btn) => {
+          btn.setAttribute('aria-current', btn.id === prefix + screenName ? 'page' : 'false');
+        });
       });
 
       // Mobile 4-Tab Capsule Sync
@@ -1336,15 +1335,9 @@
         if (b) b.setAttribute('aria-pressed', isFlashActive ? 'true' : 'false');
       });
 
+      if (label) label.innerText = isFlashActive ? 'NYALA' : 'MATI';
       if (isFlashActive) {
-        if (label) label.innerText = 'NYALA';
-        if (desktopBtn) desktopBtn.className = 'flat-btn min-h-[44px] px-4 rounded-lg text-xs font-extrabold bg-[var(--wms-accent)] text-[var(--wms-accent-ink)]';
-        if (mobileBtn) mobileBtn.className = 'flat-btn w-11 h-11 rounded-lg flex items-center justify-center bg-[var(--wms-accent)] text-[var(--wms-accent-ink)]';
         triggerToast('Senter LED Aktif', 'Pencahayaan kamera tambahan diaktifkan.');
-      } else {
-        if (label) label.innerText = 'MATI';
-        if (desktopBtn) desktopBtn.className = 'flat-btn flat-surface-alt min-h-[44px] px-4 rounded-lg text-xs font-bold';
-        if (mobileBtn) mobileBtn.className = 'flat-btn flat-surface-alt w-11 h-11 rounded-lg flex items-center justify-center';
       }
     }
 
