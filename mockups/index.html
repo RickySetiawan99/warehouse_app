@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Grosera WMS: Pemindai Gudang Mobile</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+
+      /* Active Palette: Slate Neutral + Grosera Orange Accent + Semantic Emerald/Red */
+      --wms-accent: #FF783F;
+      --wms-accent-hover: #E5622B;
+      --wms-accent-ink: #0F172A;
+
+      --wms-ok: #10B981;
+      --wms-ok-ink: #0F172A;
+    }
+
+    html[data-theme="dark"] {
+      --wms-bg: #0F172A;
+      --wms-surface: #182235;
+      --wms-surface-alt: #223049;
+      --wms-input: #0B111E;
+      --wms-divider: #2A3954;
+      --wms-border: #64748B;
+      --wms-text: #F8FAFC;
+      --wms-muted: #CBD5E1;
+      --wms-accent-text: #FF9F6E;
+      --wms-ok-text: #34D399;
+      --wms-err-bg: #991B1B;
+      --wms-err-text: #FCA5A5;
+      --wms-err-border: #EF4444;
+    }
+
+    html[data-theme="light"] {
+      --wms-bg: #F1F5F9;
+      --wms-surface: #FFFFFF;
+      --wms-surface-alt: #E2E8F0;
+      --wms-input: #F8FAFC;
+      --wms-divider: #CBD5E1;
+      --wms-border: #64748B;
+      --wms-text: #0F172A;
+      --wms-muted: #475569;
+      --wms-accent-text: #C2410C;
+      --wms-ok-text: #047857;
+      --wms-err-bg: #B91C1C;
+      --wms-err-text: #B91C1C;
+      --wms-err-border: #DC2626;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      overflow-x: clip;
+      background-color: var(--wms-bg);
+      color: var(--wms-text);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .font-code {
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .fluid-title {
+      font-size: clamp(1.125rem, 2.2vw, 1.5rem);
+      line-height: 1.25;
+    }
+
+    /* Flat Surface Contracts (Zero shadow, zero blur, solid tonal layers) */
+    .flat-surface {
+      background-color: var(--wms-surface);
+      border: 1px solid var(--wms-divider);
+    }
+
+    .flat-surface-alt {
+      background-color: var(--wms-surface-alt);
+      border: 1px solid var(--wms-divider);
+    }
+
+    .flat-input {
+      background-color: var(--wms-input);
+      border: 1.5px solid var(--wms-border);
+      color: var(--wms-text);
+      font-size: 16px;
+      scroll-margin-bottom: 140px;
+      transition: border-color 150ms var(--ease-out), background-color 150ms var(--ease-out);
+    }
+
+    .flat-input:focus-visible {
+      outline: 2px solid var(--wms-accent);
+      outline-offset: 2px;
+      border-color: var(--wms-accent);
+    }
+
+    /* Tactile flat controls + high-contrast focus indicator (R-32) */
+    .flat-btn {
+      transition: transform 130ms var(--ease-out), background-color 130ms ease, color 130ms ease, border-color 130ms ease;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    .flat-btn:active {
+      transform: scale(0.97);
+    }
+
+    .flat-btn:focus-visible,
+    .flat-focus:focus-visible {
+      outline: 2px solid var(--wms-accent);
+      outline-offset: 2px;
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      .flat-hover-surface:hover {
+        background-color: var(--wms-surface-alt);
+      }
+      .flat-hover-border:hover {
+        border-color: var(--wms-accent);
+      }
+      .flat-hover-accent:hover {
+        background-color: var(--wms-accent-hover);
+      }
+    }
+
+    /* Clip-Path Segmented Control for Opname Pcs vs Dus */
+    .segmented-clip-wrap {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      background-color: var(--wms-surface);
+      border: 1.5px solid var(--wms-border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .segmented-clip-overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      background-color: var(--wms-accent);
+      color: var(--wms-accent-ink);
+      pointer-events: none;
+      clip-path: inset(0 50% 0 0 round 6px);
+      transition: clip-path 210ms var(--ease-out);
+    }
+
+    .segmented-clip-overlay[data-active-index="1"] {
+      clip-path: inset(0 0 0 50% round 6px);
+    }
+
+    /* Interruptible Toast (Slide via transform + opacity, swipe-up dismiss) */
+    .flat-toast {
+      position: fixed;
+      top: max(12px, env(safe-area-inset-top));
+      left: 16px;
+      right: 16px;
+      max-width: 440px;
+      margin-left: auto;
+      margin-right: auto;
+      z-index: 80;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-120%) scale(0.96);
+      transition: transform 220ms var(--ease-out), opacity 180ms var(--ease-out);
+      touch-action: pan-y;
+    }
+
+    .flat-toast[data-open="true"] {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0) scale(1);
+    }
+
+    /* Single-shot Laser Sweep triggered on scan click only */
+    @keyframes flatLaserOnce {
+      0% { transform: translateY(16px); opacity: 0.95; }
+      55% { transform: translateY(164px); opacity: 1; }
+      100% { transform: translateY(90px); opacity: 1; }
+    }
+
+    .flat-laser {
+      position: absolute;
+      top: 0;
+      left: 20px;
+      right: 20px;
+      height: 3px;
+      background-color: var(--wms-accent);
+      transform: translateY(90px);
+    }
+
+    .flat-laser.is-scanning {
+      animation: flatLaserOnce 420ms var(--ease-out) 1;
+    }
+
+    .scan-card-update {
+      transform-origin: top center;
+      transition: transform 180ms var(--ease-out), opacity 160ms var(--ease-out);
+    }
+    .scan-card-update[data-updating="true"] {
+      opacity: 0.65;
+      transform: scale(0.985);
+    }
+
+    .flat-progress-bar {
+      transform-origin: left center;
+      transition: transform 200ms var(--ease-out), background-color 180ms ease;
+    }
+
+    /* Mobile Bottom Nav Capsule & Icon State */
+    .mob-pill {
+      transition: background-color 170ms var(--ease-out), color 170ms var(--ease-out), transform 170ms var(--ease-out);
+    }
+
+    .mob-nav-btn[aria-current="page"] .mob-pill {
+      background-color: var(--wms-accent);
+      color: var(--wms-accent-ink);
+    }
+
+    .mob-nav-btn[aria-current="page"] .mob-label {
+      color: var(--wms-accent-text);
+      font-weight: 800;
+    }
+
+    .mob-nav-btn .icon-solid {
+      display: none;
+    }
+
+    .mob-nav-btn[aria-current="page"] .icon-solid {
+      display: block;
+    }
+
+    .mob-nav-btn[aria-current="page"] .icon-outline {
+      display: none;
+    }
+
+    /* Safe bottom space above fixed mobile nav */
+    .mobile-content-pad {
+      padding-bottom: calc(5.75rem + env(safe-area-inset-bottom));
+    }
+
+    @media (min-width: 768px) {
+      .mobile-content-pad {
+        padding-bottom: 2.5rem;
+      }
+    }
+
+    .mobile-bottom-nav {
+      padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+    }
+
+    /* Accessible Mobile Bottom Sheet */
+    .flat-sheet-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      background-color: rgba(15, 23, 42, 0.75);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms var(--ease-out);
+    }
+
+    .flat-sheet-backdrop[data-open="true"] {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .flat-sheet-panel {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 65;
+      background-color: var(--wms-surface);
+      border-top: 2px solid var(--wms-divider);
+      padding: 16px 16px calc(20px + env(safe-area-inset-bottom));
+      transform: translateY(100%);
+      transition: transform 220ms var(--ease-out);
+    }
+
+    .flat-sheet-panel[data-open="true"] {
+      transform: translateY(0);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .flat-laser.is-scanning {
+        animation: none;
+      }
+      .flat-btn,
+      .flat-toast,
+      .segmented-clip-overlay,
+      .scan-card-update,
+      .flat-progress-bar,
+      .mob-pill,
+      .flat-sheet-backdrop,
+      .flat-sheet-panel {
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-[100dvh]">
+
+  <!-- Interruptible Toast Feedback (Swipe up to dismiss) -->
+  <div id="wms-toast" data-open="false" class="flat-toast" role="status" aria-live="polite">
+    <div id="toast-box" class="bg-[var(--wms-surface)] border-2 border-[var(--wms-ok)] text-[var(--wms-text)] p-3.5 rounded-lg flex items-start gap-3">
+      <div id="toast-indicator" class="w-3 h-3 rounded-sm bg-[var(--wms-ok)] mt-1 shrink-0"></div>
+      <div class="flex-1 min-w-0">
+        <p id="toast-title" class="text-sm font-bold leading-snug">Notifikasi Sistem</p>
+        <p id="toast-body" class="text-xs text-[var(--wms-muted)] mt-0.5 leading-snug">Operasi berhasil dicatat.</p>
+      </div>
+      <button type="button" onclick="hideToast()" class="flat-btn flat-surface-alt min-h-[36px] px-3 rounded-md text-xs font-bold shrink-0">
+        Tutup
+      </button>
+    </div>
+  </div>
+
+  <!-- App Shell: Mobile Full-Screen App -> Tablet 2-Col Top Tabs -> Desktop Left Rail -->
+  <div class="min-h-[100dvh] flex flex-col lg:flex-row">
+
+    <!-- DESKTOP LEFT NAVIGATION RAIL (>= 1024px) -->
+    <aside class="hidden lg:flex lg:flex-col lg:w-64 lg:shrink-0 bg-[var(--wms-surface)] border-r border-[var(--wms-divider)] sticky top-0 h-[100dvh] p-4 justify-between">
+      <div>
+        <div class="flex items-center gap-3 pb-4 border-b border-[var(--wms-divider)]">
+          <div class="w-10 h-10 rounded-lg bg-[var(--wms-accent)] text-[#0F172A] flex items-center justify-center shrink-0">
+            <svg class="w-6 h-6" viewBox="82 65 172 179" aria-hidden="true">
+              <path fill-rule="evenodd" fill="currentColor" d="M158.88 170.88 L157.62 171.12 L154.75 172.25 L144.88 177.00 L137.62 180.12 L134.62 181.75 L132.88 183.75 L132.12 185.75 L132.00 186.62 L132.00 224.25 L132.88 227.00 L133.88 228.62 L135.50 230.25 L140.88 233.50 L146.50 236.38 L152.00 239.75 L153.38 240.38 L155.50 241.75 L159.88 244.12 L162.25 244.88 L165.38 245.00 L167.12 244.62 L169.00 243.88 L174.00 241.00 L178.12 239.00 L189.38 232.88 L191.50 231.12 L192.50 229.62 L193.12 228.25 L193.75 226.00 L193.88 189.88 L193.50 188.38 L192.88 187.12 L191.62 185.75 L190.12 184.75 L170.00 174.38 L165.00 171.62 L162.75 170.88ZM244.38 140.75 L242.25 140.00 L238.62 139.50 L201.38 139.38 L201.25 139.25 L191.62 139.25 L186.00 139.00 L181.50 140.00 L177.12 142.12 L169.25 146.88 L161.50 151.12 L160.50 152.38 L160.38 153.88 L160.88 154.75 L162.00 155.62 L172.25 160.88 L177.50 163.25 L181.00 165.25 L193.50 171.50 L196.88 173.38 L202.50 176.00 L203.25 176.50 L204.00 177.38 L204.38 178.50 L204.38 222.50 L205.00 224.38 L206.12 225.25 L207.50 225.38 L209.62 224.50 L220.25 218.12 L224.75 215.75 L234.88 209.75 L243.50 205.00 L246.25 202.50 L247.88 200.25 L249.00 198.12 L249.88 195.88 L250.62 191.62 L250.88 150.00 L250.12 147.00 L248.62 144.12 L246.62 142.12ZM254.25 105.25 L252.62 104.00 L240.12 97.25 L229.50 91.12 L223.88 88.12 L215.50 83.12 L207.25 78.75 L185.75 66.50 L184.50 66.00 L180.75 65.25 L177.75 65.12 L173.12 66.00 L170.62 67.12 L168.00 68.88 L151.00 78.88 L135.12 88.62 L129.12 92.00 L126.50 93.75 L117.25 99.25 L110.00 104.00 L99.00 110.50 L97.00 111.88 L91.25 115.00 L89.88 116.00 L87.75 118.00 L85.75 120.62 L84.25 123.38 L83.00 127.25 L82.50 131.62 L82.50 135.62 L82.38 135.75 L82.50 157.38 L82.25 158.50 L82.25 160.88 L82.38 161.00 L82.38 169.38 L82.50 169.50 L82.50 190.62 L83.12 194.75 L84.12 197.62 L85.12 199.62 L86.75 201.88 L88.00 203.12 L91.38 205.62 L92.88 206.25 L94.75 207.38 L100.50 210.25 L110.75 216.12 L113.12 217.25 L119.88 221.00 L121.12 221.12 L121.75 220.88 L122.25 220.38 L122.75 219.25 L122.75 212.25 L122.88 212.12 L122.75 143.38 L123.25 141.25 L124.25 139.75 L125.38 138.62 L127.12 137.38 L141.38 128.75 L145.75 125.88 L151.88 122.25 L156.00 119.50 L177.25 106.38 L179.75 105.62 L181.25 105.50 L182.88 105.75 L185.25 106.50 L191.88 110.12 L196.88 113.12 L201.75 115.62 L206.12 118.25 L215.38 123.25 L217.12 124.00 L220.75 124.88 L223.00 124.88 L226.50 124.00 L228.75 122.88 L240.25 116.12 L253.25 109.00 L254.62 107.75 L254.88 107.12 L254.88 106.38Z"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm font-extrabold tracking-tight leading-tight">Gudang Utama</p>
+            <p class="text-xs text-[var(--wms-muted)]">Mode Simulasi WMS</p>
+          </div>
+        </div>
+
+        <nav class="mt-4 space-y-1.5" aria-label="Menu utama aplikasi gudang">
+          <button type="button" onclick="switchScreen('dashboard')" id="rail-nav-dashboard" aria-current="page" class="flat-btn flat-hover-surface w-full min-h-[46px] px-3 rounded-lg text-left text-sm font-bold flex items-center justify-between bg-[var(--wms-accent)] text-[var(--wms-accent-ink)]">
+            <span>Beranda Shift</span>
+            <span class="font-code text-xs">1</span>
+          </button>
+          <button type="button" onclick="switchScreen('scanner')" id="rail-nav-scanner" class="flat-btn flat-hover-surface w-full min-h-[46px] px-3 rounded-lg text-left text-sm font-bold flex items-center justify-between text-[var(--wms-text)]">
+            <span>Quick Scanner</span>
+            <span class="font-code text-xs text-[var(--wms-muted)]">2</span>
+          </button>
+          <button type="button" onclick="switchScreen('opname')" id="rail-nav-opname" class="flat-btn flat-hover-surface w-full min-h-[46px] px-3 rounded-lg text-left text-sm font-bold flex items-center justify-between text-[var(--wms-text)]">
+            <span>Stock Opname</span>
+            <span class="font-code text-xs text-[var(--wms-muted)]">3</span>
+          </button>
+          <button type="button" onclick="switchScreen('inbound')" id="rail-nav-inbound" class="flat-btn flat-hover-surface w-full min-h-[46px] px-3 rounded-lg text-left text-sm font-bold flex items-center justify-between text-[var(--wms-text)]">
+            <span>Inbound PO</span>
+            <span class="font-code text-xs text-[var(--wms-muted)]">4</span>
+          </button>
+          <button type="button" onclick="switchScreen('picking')" id="rail-nav-picking" class="flat-btn flat-hover-surface w-full min-h-[46px] px-3 rounded-lg text-left text-sm font-bold flex items-center justify-between text-[var(--wms-text)]">
+            <span>Outbound Picking</span>
+            <span class="font-code text-xs text-[var(--wms-muted)]">5</span>
+          </button>
+          <button type="button" onclick="switchScreen('transfer')" id="rail-nav-transfer" class="flat-btn flat-hover-surface w-full min-h-[46px] px-3 rounded-lg text-left text-sm font-bold flex items-center justify-between text-[var(--wms-text)]">
+            <span>Mutasi Gudang</span>
+            <span class="font-code text-xs text-[var(--wms-muted)]">6</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="space-y-4 pt-4 border-t border-[var(--wms-divider)]">
+        <div>
+          <p class="text-xs font-bold text-[var(--wms-muted)] mb-2">Kondisi Cahaya</p>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" onclick="setWmsTheme('dark')" id="desk-theme-dark" class="flat-btn min-h-[44px] px-2.5 rounded-md text-xs font-bold bg-[var(--wms-accent)] text-[var(--wms-accent-ink)]">
+              Lorong Gelap
+            </button>
+            <button type="button" onclick="setWmsTheme('light')" id="desk-theme-light" class="flat-btn flat-surface-alt min-h-[44px] px-2.5 rounded-md text-xs font-bold text-[var(--wms-text)]">
+              Loading Terang
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <p class="text-xs font-bold text-[var(--wms-muted)] mb-2">Simulasi Status Data</p>
+          <div class="grid grid-cols-2 gap-1.5">
+            <button type="button" onclick="setAppDataState('normal')" data-state-btn="normal" class="flat-btn min-h-[40px] px-2 rounded text-xs font-bold bg-[var(--wms-accent)] text-[var(--wms-accent-ink)]">Normal</button>
+            <button type="button" onclick="setAppDataState('loading')" data-state-btn="loading" class="flat-btn flat-surface-alt min-h-[40px] px-2 rounded text-xs font-bold text-[var(--wms-text)]">Memuat</button>
+            <button type="button" onclick="setAppDataState('empty')" data-state-btn="empty" class="flat-btn flat-surface-alt min-h-[40px] px-2 rounded text-xs font-bold text-[var(--wms-text)]">Kosong</button>
+            <button type="button" onclick="setAppDataState('error')" data-state-btn="error" class="flat-btn flat-surface-alt min-h-[40px] px-2 rounded text-xs font-bold text-[var(--wms-text)]">Error</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN RESPONSIVE CONTENT COLUMN -->
+    <div class="flex-1 flex flex-col min-w-0">
+
+      <!-- SINGLE CLEAN MOBILE / TABLET TOP BAR (Consistent Icon-Only Right Actions, Zero Duplicate Mobile H2) -->
+      <header class="lg:hidden sticky top-0 z-40 bg-[var(--wms-surface)] border-b border-[var(--wms-divider)] pt-[env(safe-area-inset-top)]">
+        <div class="px-4 min-h-[58px] flex items-center justify-between gap-3">
+          <!-- Left Slot: Brand Icon on Dashboard OR Back Icon Button on Sub-screens -->
+          <div class="flex items-center gap-3 min-w-0">
+            <div id="mob-top-brand" class="w-10 h-10 rounded-lg bg-[var(--wms-accent)] text-[#0F172A] flex items-center justify-center shrink-0" aria-hidden="true">
+              <svg class="w-6 h-6" viewBox="82 65 172 179">
+                <path fill-rule="evenodd" fill="currentColor" d="M158.88 170.88 L157.62 171.12 L154.75 172.25 L144.88 177.00 L137.62 180.12 L134.62 181.75 L132.88 183.75 L132.12 185.75 L132.00 186.62 L132.00 224.25 L132.88 227.00 L133.88 228.62 L135.50 230.25 L140.88 233.50 L146.50 236.38 L152.00 239.75 L153.38 240.38 L155.50 241.75 L159.88 244.12 L162.25 244.88 L165.38 245.00 L167.12 244.62 L169.00 243.88 L174.00 241.00 L178.12 239.00 L189.38 232.88 L191.50 231.12 L192.50 229.62 L193.12 228.25 L193.75 226.00 L193.88 189.88 L193.50 188.38 L192.88 187.12 L191.62 185.75 L190.12 184.75 L170.00 174.38 L165.00 171.62 L162.75 170.88ZM244.38 140.75 L242.25 140.00 L238.62 139.50 L201.38 139.38 L201.25 139.25 L191.62 139.25 L186.00 139.00 L181.50 140.00 L177.12 142.12 L169.25 146.88 L161.50 151.12 L160.50 152.38 L160.38 153.88 L160.88 154.75 L162.00 155.62 L172.25 160.88 L177.50 163.25 L181.00 165.25 L193.50 171.50 L196.88 173.38 L202.50 176.00 L203.25 176.50 L204.00 177.38 L204.38 178.50 L204.38 222.50 L205.00 224.38 L206.12 225.25 L207.50 225.38 L209.62 224.50 L220.25 218.12 L224.75 215.75 L234.88 209.75 L243.50 205.00 L246.25 202.50 L247.88 200.25 L249.00 198.12 L249.88 195.88 L250.62 191.62 L250.88 150.00 L250.12 147.00 L248.62 144.12 L246.62 142.12ZM254.25 105.25 L252.62 104.00 L240.12 97.25 L229.50 91.12 L223.88 88.12 L215.50 83.12 L207.25 78.75 L185.75 66.50 L184.50 66.00 L180.75 65.25 L177.75 65.12 L173.12 66.00 L170.62 67.12 L168.00 68.88 L151.00 78.88 L135.12 88.62 L129.12 92.00 L126.50 93.75 L117.25 99.25 L110.00 104.00 L99.00 110.50 L97.00 111.88 L91.25 115.00 L89.88 116.00 L87.75 118.00 L85.75 120.62 L84.25 123.38 L83.00 127.25 L82.50 131.62 L82.50 135.62 L82.38 135.75 L82.50 157.38 L82.25 158.50 L82.25 160.88 L82.38 161.00 L82.38 169.38 L82.50 169.50 L82.50 190.62 L83.12 194.75 L84.12 197.62 L85.12 199.62 L86.75 201.88 L88.00 203.12 L91.38 205.62 L92.88 206.25 L94.75 207.38 L100.50 210.25 L110.75 216.12 L113.12 217.25 L119.88 221.00 L121.12 221.12 L121.75 220.88 L122.25 220.38 L122.75 219.25 L122.75 212.25 L122.88 212.12 L122.75 143.38 L123.25 141.25 L124.25 139.75 L125.38 138.62 L127.12 137.38 L141.38 128.75 L145.75 125.88 L151.88 122.25 L156.00 119.50 L177.25 106.38 L179.75 105.62 L181.25 105.50 L182.88 105.75 L185.25 106.50 L191.88 110.12 L196.88 113.12 L201.75 115.62 L206.12 118.25 L215.38 123.25 L217.12 124.00 L220.75 124.88 L223.00 124.88 L226.50 124.00 L228.75 122.88 L240.25 116.12 L253.25 109.00 L254.62 107.75 L254.88 107.12 L254.88 106.38Z"/>
+              </svg>
+            </div>
+            <button type="button" id="mob-top-back" onclick="switchScreen('dashboard')" class="hidden flat-btn flat-surface-alt w-11 h-11 rounded-lg flex items-center justify-center shrink-0" aria-label="Kembali ke Beranda">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+              </svg>
+            </button>
+            <div class="min-w-0">
+              <h1 id="mobile-header-title" class="text-base font-extrabold tracking-tight truncate">Shift Gudang</h1>
+              <p id="mobile-header-sub" class="text-xs text-[var(--wms-muted)] truncate">Gudang Utama • Simulasi</p>
+            </div>
+          </div>
+
+          <!-- Right Slot: Pure Consistent 44x44px Icon Buttons (Never mix text button with icon buttons) -->
+          <div class="flex items-center gap-2 shrink-0">
+            <button type="button" id="mob-flash-btn" onclick="toggleFlash()" aria-pressed="false" class="hidden flat-btn flat-surface-alt w-11 h-11 rounded-lg flex items-center justify-center" title="Senter LED" aria-label="Nyalakan senter kamera">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+              </svg>
+            </button>
+            <button type="button" onclick="toggleWmsTheme()" id="mobile-theme-btn" class="flat-btn flat-surface-alt w-11 h-11 rounded-lg flex items-center justify-center" title="Ganti Tema Cahaya" aria-label="Ganti tema gelap atau terang">
+              <svg id="theme-icon-sun" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+              </svg>
+              <svg id="theme-icon-moon" class="hidden w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+              </svg>
+            </button>
+            <button type="button" onclick="openMobileSheet()" class="md:hidden flat-btn flat-surface-alt w-11 h-11 rounded-lg flex items-center justify-center" title="Status & Modul" aria-label="Buka modul gudang dan simulasi status">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- TABLET TOP TABS (768px - 1023px) -->
+        <nav class="hidden md:flex lg:hidden items-center gap-1.5 px-4 pb-2.5 overflow-x-auto" aria-label="Navigasi modul tablet">
+          <button type="button" onclick="switchScreen('dashboard')" id="tab-nav-dashboard" aria-current="page" class="flat-btn min-h-[44px] px-3.5 rounded-md text-xs font-bold bg-[var(--wms-accent)] text-[var(--wms-accent-ink)] shrink-0">Beranda</button>
+          <button type="button" onclick="switchScreen('scanner')" id="tab-nav-scanner" class="flat-btn flat-surface-alt min-h-[44px] px-3.5 rounded-md text-xs font-bold shrink-0">Scan Barcode</button>
+          <button type="button" onclick="switchScreen('opname')" id="tab-nav-opname" class="flat-btn flat-surface-alt min-h-[44px] px-3.5 rounded-md text-xs font-bold shrink-0">Stock Opname</button>
+          <button type="button" onclick="switchScreen('inbound')" id="tab-nav-inbound" class="flat-btn flat-surface-alt min-h-[44px] px-3.5 rounded-md text-xs font-bold shrink-0">Inbound PO</button>
+          <button type="button" onclick="switchScreen('picking')" id="tab-nav-picking" class="flat-btn flat-surface-alt min-h-[44px] px-3.5 rounded-md text-xs font-bold shrink-0">Picking</button>
+          <button type="button" onclick="switchScreen('transfer')" id="tab-nav-transfer" class="flat-btn flat-surface-alt min-h-[44px] px-3.5 rounded-md text-xs font-bold shrink-0">Mutasi</button>
+        </nav>
+      </header>
+
+      <!-- WORKSPACE CANVAS -->
+      <main class="flex-1 w-full max-w-5xl mx-auto p-4 sm:p-6 lg:p-8 mobile-content-pad">
+
+        <!-- ========================================== -->
+        <!-- SCREEN 1: DASHBOARD SHIFT                  -->
+        <!-- ========================================== -->
+        <section id="screen-dashboard" class="screen-view space-y-4 sm:space-y-5">
+          <!-- Screen Header only on Tablet/Desktop (Mobile uses sticky Top Bar so zero duplicate headers) -->
+          <div class="hidden md:flex items-center justify-between gap-3">
+            <div>
+              <h2 class="fluid-title font-extrabold tracking-tight">Tugas Shift Gudang</h2>
+              <p class="text-sm text-[var(--wms-muted)] mt-0.5">Operator Gudang (Shift Aktif) • Data Simulasi</p>
+            </div>
+            <div class="flex lg:hidden items-center gap-1.5">
+              <button type="button" onclick="setAppDataState('normal')" data-state-btn="normal" class="flat-btn min-h-[38px] px-2.5 rounded text-xs font-bold bg-[var(--wms-accent)] text-[var(--wms-accent-ink)]">Normal</button>
+              <button type="button" onclick="setAppDataState('loading')" data-state-btn="loading" class="flat-btn flat-surface-alt min-h-[38px] px-2.5 rounded text-xs font-bold">Memuat</button>
+              <button type="button" onclick="setAppDataState('empty')" data-state-btn="empty" class="flat-btn flat-surface-alt min-h-[38px] px-2.5 rounded text-xs font-bold">Kosong</button>
+              <button type="button" onclick="setAppDataState('error')" data-state-btn="error" class="flat-btn flat-surface-alt min-h-[38px] px-2.5 rounded text-xs font-bold">Error</button>
+            </div>
+          </div>
+
+          <!-- Dashboard Loading State -->
+          <div id="dash-state-loading" class="hidden flat-surface rounded-xl p-5 space-y-3">
+            <p class="text-base font-bold">Memuat antrean tugas shift dari server gudang...</p>
+            <p class="text-sm text-[var(--wms-muted)]">Mengambil daftar Inbound PO, Picking, dan prioritas FEFO terbaru.</p>
+            <button type="button" onclick="setAppDataState('normal')" class="flat-btn flat-surface-alt min-h-[46px] px-4 rounded-lg text-sm font-bold">
+              Batalkan &amp; Tampilkan Data Simulasi
+            </button>
+          </div>
+
+          <!-- Dashboard Empty State -->
+          <div id="dash-state-empty" class="hidden flat-surface rounded-xl p-5 space-y-3">
+            <h3 class="text-base font-extrabold">Belum ada tugas shift terjadwal</h3>
+            <p class="text-sm text-[var(--wms-muted)]">
+              Belum ada PO supplier yang bersandar di dock maupun order picking untuk shift ini. Anda tetap bisa memeriksa stok rak lewat pemindai barcode.
+            </p>
+            <div class="flex flex-wrap gap-3 pt-1">
+              <button type="button" onclick="switchScreen('scanner')" class="flat-btn flat-hover-accent min-h-[48px] px-5 rounded-lg bg-[var(--wms-accent)] text-[var(--wms-accent-ink)] text-sm font-extrabold">
+                Buka Pemindai Barcode
+              </button>
+              <button type="button" onclick="setAppDataState('normal')" class="flat-btn flat-surface-alt min-h-[48px] px-4 rounded-lg text-sm font-bold">
+                Muat Tugas Simulasi
+              </button>
+            </div>
+          </div>
+
+          <!-- Dashboard Error State -->
+          <div id="dash-state-error" class="hidden bg-[var(--wms-err-bg)] border-2 border-[var(--wms-err-border)] text-white rounded-xl p-5 space-y-3">
+            <h3 class="text-base font-extrabold">Koneksi ke server WMS terputus</h3>
+            <p class="text-sm text-white/90">
+              Gagal menyinkronkan antrean tugas. Periksa koneksi WiFi gudang lalu muat ulang data, atau gunakan Stock Opname lokal sementara.
+            </p>
+            <div class="flex flex-wrap gap-3 pt-1">
+              <button type="button" onclick="setAppDataState('normal')" class="flat-btn bg-white text-[#0F172A] min-h-[48px] px-5 rounded-lg text-sm font-extrabold">
+                Coba Hubungkan Ulang
+              </button>
+              <button type="button" onclick="switchScreen('scanner')" class="flat-btn bg-[#0F172A] text-white min-h-[48px] px-4 rounded-lg text-sm font-bold">
+                Scan Barcode Offline
+              </button>
+            </div>
+          </div>
+
+          <!-- Dashboard Normal Content (Lighter Mobile Hierarchy: Zero Card-Box Overload) -->
+          <div id="dash-state-normal" class="grid grid-cols-1 md:grid-cols-12 gap-4 lg:gap-6 items-start">
+
+            <!-- Left Column on Tablet/Desktop; Top Focal Flow on Mobile -->
+            <div class="md:col-span-5 space-y-3.5">
+              <!-- Focal Action CTA -->
+              <button type="button" onclick="switchScreen('scanner')" class="flat-btn flat-hover-accent w-full bg-[var(--wms-accent)] text-[var(--wms-accent-ink)] p-4 rounded-xl flex items-center justify-between gap-3 min-h-[72px] text-left">
+                <div>
+                  <span class="block text-base font-extrabold tracking-tight">Pindai Barcode Barang</span>
+                  <span class="block text-xs font-semibold mt-0.5">Scan dus master, pak, atau SKU rak</span>
+                </div>
+                <span class="w-11 h-11 rounded-lg bg-[#0F172A] text-white flex items-center justify-center shrink-0" aria-hidden="true">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 7V5a1 1 0 011-1h2M17 4h2a1 1 0 011 1v2M4 17v2a1 1 0 001 1h2M17 20h2a1 1 0 001-1v-2M7 12h10"/>
+                  </svg>
+                </span>
+              </button>
+
+              <!-- Inline Compact Shift Summary Strip (No unnecessary bordered box on mobile) -->
+              <dl class="grid grid-cols-3 gap-2 py-2.5 px-1 border-y border-[var(--wms-divider)] text-center sm:text-left">
+                <div>
+                  <dt class="text-xs text-[var(--wms-muted)]">PO Masuk</dt>
+                  <dd class="text-lg font-extrabold font-code">2</dd>
+                </div>
+                <div>
+                  <dt class="text-xs text-[var(--wms-muted)]">Siap Pick</dt>
+                  <dd class="text-lg font-extrabold font-code">4</dd>
+                </div>
+                <div>
+                  <dt class="text-xs text-[var(--wms-muted)]">Opname</dt>
+                  <dd class="text-lg font-extrabold font-code">1</dd>
+                </div>
+              </dl>
+
+              <!-- Compact FEFO Urgent Strip -->
+              <div class="bg-[var(--wms-err-bg)] border border-[var(--wms-err-border)] text-white rounded-xl p-3.5 space-y-1">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-xs font-extrabold uppercase tracking-wide">Prioritas FEFO</span>
+                  <span class="text-xs font-code font-bold bg-[#0F172A] text-white px-2 py-0.5 rounded">EXP 14 HARI</span>
+                </div>
+                <p class="text-sm font-bold leading-snug">Susu UHT Cokelat 1L • Batch B-202610</p>
+                <p class="text-xs text-white/95">Lorong B3 Rak 02 (<span class="font-code font-bold">18 Dus</span>): keluarkan dahulu.</p>
+              </div>
+            </div>
+
+            <!-- Divided Operational Task List (Right on Tablet/Desktop; Clean Flat Rows on Mobile) -->
+            <div class="md:col-span-7 flat-surface rounded-xl overflow-hidden">
+              <div class="px-4 py-3 border-b border-[var(--wms-divider)] flex items-center justify-between gap-2">
+                <h3 class="text-sm font-extrabold">Antrean Tugas Shift</h3>
+                <span class="text-xs font-code text-[var(--wms-muted)]">4 AKTIF (SIMULASI)</span>
+              </div>
+
+              <div class="divide-y divide-[var(--wms-divider)]">
+                <button type="button" onclick="switchScreen('inbound')" class="flat-btn flat-hover-surface w-full text-left px-4 py-3.5 flex items-center justify-between gap-3 min-h-[68px]">
+                  <div class="min-w-0 space-y-0.5">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="text-xs font-extrabold text-[var(--wms-accent-text)]">Inbound PO</span>
+                      <span class="text-xs font-code text-[var(--wms-muted)]">PO-202611-0003</span>
+                    </div>
+                    <p class="text-sm font-bold truncate">Supplier Contoh A • Dock 1</p>
+                    <p class="text-xs text-[var(--wms-muted)] truncate">2 item menanti cek fisik dan tanggal kadaluarsa.</p>
+                  </div>
+                  <svg class="w-5 h-5 text-[var(--wms-muted)] shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                  </svg>
+                </button>
+
+                <button type="button" onclick="switchScreen('picking')" class="flat-btn flat-hover-surface w-full text-left px-4 py-3.5 flex items-center justify-between gap-3 min-h-[68px]">
+                  <div class="min-w-0 space-y-0.5">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="text-xs font-extrabold text-[var(--wms-ok-text)]">Outbound Picking</span>
+                      <span class="text-xs font-code text-[var(--wms-muted)]">ORD-00108</span>
+                    </div>
+                    <p class="text-sm font-bold truncate">Order Toko Mitra 01 • Siap Muat</p>
+                    <p class="text-xs text-[var(--wms-muted)] truncate">Verifikasi 5 Dus Sosro dan 3 Dus Kopi Kapal Api.</p>
+                  </div>
+                  <svg class="w-5 h-5 text-[var(--wms-muted)] shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                  </svg>
+                </button>
+
+                <button type="button" onclick="switchScreen('opname')" class="flat-btn flat-hover-surface w-full text-left px-4 py-3.5 flex items-center justify-between gap-3 min-h-[68px]">
+                  <div class="min-w-0 space-y-0.5">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="text-xs font-extrabold text-[var(--wms-accent-text)]">Stock Opname</span>
+                      <span class="text-xs font-code text-[var(--wms-muted)]">RAK B2</span>
+                    </div>
+                    <p class="text-sm font-bold truncate">Minyak Goreng Sawit 1L</p>
+                    <p class="text-xs text-[var(--wms-muted)] truncate">Audit fisik vs stok buku 50 Pcs.</p>
+                  </div>
+                  <svg class="w-5 h-5 text-[var(--wms-muted)] shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                  </svg>
+                </button>
+
+                <button type="button" onclick="switchScreen('transfer')" class="flat-btn flat-hover-surface w-full text-left px-4 py-3.5 flex items-center justify-between gap-3 min-h-[68px]">
+                  <div class="min-w-0 space-y-0.5">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="text-xs font-extrabold text-[var(--wms-ok-text)]">Mutasi Antar-Gudang</span>
+                      <span class="text-xs font-code text-[var(--wms-muted)]">TRF-202611-0002</span>
+                    </div>
+                    <p class="text-sm font-bold truncate">Gudang Pusat ke Gudang Cabang</p>
+                    <p class="text-xs text-[var(--wms-muted)] truncate">Konfirmasi masuk 10 Dus Teh Botol Sosro.</p>
+                  </div>
+                  <svg class="w-5 h-5 text-[var(--wms-muted)] shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- SCREEN 2: QUICK BARCODE SCANNER            -->
+        <!-- ========================================== -->
+        <section id="screen-scanner" class="screen-view hidden space-y-4">
+          <div class="hidden lg:flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <button type="button" onclick="switchScreen('dashboard')" class="flat-btn flat-surface-alt min-h-[44px] px-3.5 rounded-lg text-sm font-bold flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                </svg>
+                <span>Kembali</span>
+              </button>
+              <h2 class="fluid-title font-extrabold tracking-tight">Quick Barcode Scanner</h2>
+            </div>
+
+            <button type="button" id="flash-toggle" onclick="toggleFlash()" aria-pressed="false" class="flat-btn flat-surface-alt min-h-[44px] px-4 rounded-lg text-xs font-bold">
+              Senter LED: <span id="flash-label">MATI</span>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 items-start">
+            <div class="space-y-3">
+              <div class="relative w-full min-h-[188px] sm:min-h-[240px] bg-[#0B111E] border-2 border-[var(--wms-border)] rounded-xl overflow-hidden flex flex-col items-center justify-center p-5">
+                <div class="absolute top-3.5 left-3.5 w-6 h-6 border-t-[3px] border-l-[3px] border-[var(--wms-accent)]" aria-hidden="true"></div>
+                <div class="absolute top-3.5 right-3.5 w-6 h-6 border-t-[3px] border-r-[3px] border-[var(--wms-accent)]" aria-hidden="true"></div>
+                <div class="absolute bottom-3.5 left-3.5 w-6 h-6 border-b-[3px] border-l-[3px] border-[var(--wms-accent)]" aria-hidden="true"></div>
+                <div class="absolute bottom-3.5 right-3.5 w-6 h-6 border-b-[3px] border-r-[3px] border-[var(--wms-accent)]" aria-hidden="true"></div>
+
+                <div id="scanner-laser" class="flat-laser" aria-hidden="true"></div>
+
+                <div class="text-center z-10 relative">
+                  <p class="text-sm font-extrabold text-white">Arahkan Barcode ke Bingkai</p>
+                  <p class="text-xs text-[#CBD5E1] mt-1">Deteksi Barcode Dus Master &amp; SKU Ecer</p>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2.5">
+                <button type="button" onclick="simulateScan('dus')" class="flat-btn flat-surface flat-hover-border flat-hover-surface p-3 rounded-xl text-left min-h-[58px]">
+                  <span class="block text-xs sm:text-sm font-extrabold text-[var(--wms-accent-text)]">Scan Dus</span>
+                  <span class="block text-xs font-code text-[var(--wms-muted)] mt-0.5 truncate">899123456024</span>
+                </button>
+                <button type="button" onclick="simulateScan('pcs')" class="flat-btn flat-surface flat-hover-border flat-hover-surface p-3 rounded-xl text-left min-h-[58px]">
+                  <span class="block text-xs sm:text-sm font-extrabold text-[var(--wms-ok-text)]">Scan Pcs</span>
+                  <span class="block text-xs font-code text-[var(--wms-muted)] mt-0.5 truncate">SKU-KOPI-65G</span>
+                </button>
+              </div>
+            </div>
+
+            <div id="scan-result-card" data-updating="false" class="scan-card-update flat-surface p-4 rounded-xl space-y-3.5">
+              <div class="flex flex-wrap items-start justify-between gap-3 pb-3 border-b border-[var(--wms-divider)]">
+                <div class="min-w-0 space-y-1">
+                  <span id="scan-pack-badge" class="inline-block bg-[var(--wms-accent)] text-[var(--wms-accent-ink)] text-xs font-code font-bold px-2.5 py-1 rounded">
+                    KEMASAN DUS (ISI 24 PCS)
+                  </span>
+                  <h3 id="scan-prod-title" class="text-base font-extrabold leading-snug">Kopi Kapal Api Special 65g</h3>
+                  <p id="scan-barcode-code" class="text-xs font-code text-[var(--wms-muted)]">899123456024</p>
+                </div>
+                <div class="text-left sm:text-right shrink-0">
+                  <span class="block text-xs text-[var(--wms-muted)]">Stok Tersedia</span>
+                  <span class="block text-xl font-code font-extrabold text-[var(--wms-ok-text)]">120 Pcs</span>
+                  <span class="block text-xs font-code text-[var(--wms-muted)]">= 5 Dus</span>
+                </div>
+              </div>
+
+              <div class="flat-surface-alt p-3 rounded-lg flex flex-wrap items-center justify-between gap-2 text-xs font-code">
+                <div>
+                  <span class="text-[var(--wms-muted)] block">Batch Terdekat (FEFO)</span>
+                  <span class="font-bold text-sm">B-202611-01</span>
+                </div>
+                <div class="text-right">
+                  <span class="font-bold text-[var(--wms-err-text)] block">Exp: 15 Hari</span>
+                  <span class="font-bold">40 Pcs • Rak C3</span>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2.5">
+                <button type="button" onclick="switchScreen('opname')" class="flat-btn flat-hover-accent bg-[var(--wms-accent)] text-[var(--wms-accent-ink)] font-extrabold min-h-[48px] px-3 rounded-lg text-xs sm:text-sm">
+                  Input Opname
+                </button>
+                <button type="button" onclick="switchScreen('picking')" class="flat-btn flat-surface-alt flat-hover-border font-bold min-h-[48px] px-3 rounded-lg text-xs sm:text-sm">
+                  Cek Picking
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- SCREEN 3: STOCK OPNAME                     -->
+        <!-- ========================================== -->
+        <section id="screen-opname" class="screen-view hidden space-y-4">
+          <div class="hidden lg:flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <button type="button" onclick="switchScreen('dashboard')" class="flat-btn flat-surface-alt min-h-[44px] px-3.5 rounded-lg text-sm font-bold flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                </svg>
+                <span>Kembali</span>
+              </button>
+              <h2 class="fluid-title font-extrabold tracking-tight">Stock Opname Fisik</h2>
+            </div>
+            <span class="text-xs font-code font-bold flat-surface-alt px-3 py-1.5 rounded-md">STATUS: PENDING</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-4 lg:gap-6 items-start">
+            <div class="md:col-span-7 space-y-4">
+              <div class="flat-surface p-4 rounded-xl">
+                <div class="flex flex-wrap items-start justify-between gap-2 pb-3 border-b border-[var(--wms-divider)]">
+                  <div>
+                    <p class="text-xs font-bold text-[var(--wms-muted)]">Lorong B2 • Rak Sembako</p>
+                    <h3 class="text-base font-extrabold mt-0.5">Minyak Goreng Sawit 1L</h3>
+                    <p class="text-xs font-code text-[var(--wms-muted)]">SKU-MGO-1L</p>
+                  </div>
+                  <div class="flex gap-4 font-code">
+                    <div>
+                      <span class="block text-xs text-[var(--wms-muted)]">Stok Buku</span>
+                      <span class="text-base font-bold">50 Pcs</span>
+                    </div>
+                    <div>
+                      <span class="block text-xs text-[var(--wms-muted)]">Selisih</span>
+                      <span id="opname-diff-val" class="text-base font-extrabold text-[var(--wms-err-text)]">-5 Pcs</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mt-4">
+                  <span class="block text-xs font-bold text-[var(--wms-muted)] mb-2">Satuan Penghitungan</span>
+                  <div class="segmented-clip-wrap h-12 text-xs sm:text-sm font-bold">
+                    <button type="button" onclick="setOpnameUnit('pcs')" class="flat-focus flex items-center justify-center text-[var(--wms-muted)]">
+                      Pcs (Dasar)
+                    </button>
+                    <button type="button" onclick="setOpnameUnit('dus')" class="flat-focus flex items-center justify-center text-[var(--wms-muted)]">
+                      Dus (Isi 12)
+                    </button>
+                    <div id="opname-unit-overlay" data-active-index="0" class="segmented-clip-overlay text-xs sm:text-sm font-extrabold">
+                      <div class="flex items-center justify-center">Pcs (Dasar)</div>
+                      <div class="flex items-center justify-center">Dus (Isi 12)</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mt-4 pt-4 border-t border-[var(--wms-divider)]">
+                  <label for="opname-qty-field" class="block text-xs font-bold text-[var(--wms-muted)] text-center mb-3">
+                    Jumlah Hasil Hitung Fisik
+                  </label>
+                  <div class="flex items-center justify-between gap-3">
+                    <button type="button" onclick="changeOpnameCount(-1)" class="flat-btn flat-surface-alt w-14 h-14 rounded-lg font-code font-extrabold text-2xl flex items-center justify-center shrink-0" aria-label="Kurangi 1">
+                      −
+                    </button>
+                    <div class="flex-1 text-center min-w-0">
+                      <input type="number" id="opname-qty-field" value="45" min="0" oninput="calcOpnameDifference()" class="flat-input w-full h-14 text-center rounded-lg font-code font-extrabold text-3xl">
+                      <span id="opname-unit-caption" class="text-xs text-[var(--wms-muted)] block mt-1">Pcs Fisik</span>
+                    </div>
+                    <button type="button" onclick="changeOpnameCount(1)" class="flat-btn flat-hover-accent w-14 h-14 rounded-lg bg-[var(--wms-accent)] text-[var(--wms-accent-ink)] font-code font-extrabold text-2xl flex items-center justify-center shrink-0" aria-label="Tambah 1">
+                      +
+                    </button>
+                  </div>
+
+                  <div class="grid grid-cols-4 gap-2 mt-3 font-code text-xs font-bold">
+                    <button type="button" onclick="changeOpnameCount(-5)" class="flat-btn flat-surface-alt min-h-[44px] rounded-md">-5</button>
+                    <button type="button" onclick="changeOpnameCount(5)" class="flat-btn flat-surface-alt min-h-[44px] rounded-md">+5</button>
+                    <button type="button" onclick="changeOpnameCount(10)" class="flat-btn flat-surface-alt min-h-[44px] rounded-md">+10</button>
+                    <button type="button" onclick="changeOpnameCount(24)" class="flat-btn flat-surface-alt min-h-[44px] rounded-md">+24</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="md:col-span-5 flat-surface p-4 rounded-xl space-y-4">
+              <div>
+                <label for="opname-batch-input" class="block text-xs font-bold text-[var(--wms-muted)] mb-1.5">Nomor Batch Rak</label>
+                <input id="opname-batch-input" type="text" value="BATCH-202611-09" placeholder="Contoh: BATCH-202611-09" class="flat-input w-full min-h-[48px] px-3 rounded-lg font-code">
+              </div>
+              <div>
+                <label for="opname-reason-input" class="block text-xs font-bold text-[var(--wms-muted)] mb-1.5">Catatan Selisih Fisik</label>
+                <input id="opname-reason-input" type="text" value="" placeholder="Alasan selisih (misal: kemasan bocor)" class="flat-input w-full min-h-[48px] px-3 rounded-lg">
+              </div>
+
+              <button type="button" onclick="submitOpnameRecord()" class="flat-btn flat-hover-accent w-full bg-[var(--wms-accent)] text-[var(--wms-accent-ink)] font-extrabold min-h-[50px] rounded-lg text-sm">
+                Kirim Hasil Opname (Pending)
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- SCREEN 4: INBOUND PO SUPPLIER              -->
+        <!-- ========================================== -->
+        <section id="screen-inbound" class="screen-view hidden space-y-4">
+          <div class="hidden lg:flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <button type="button" onclick="switchScreen('dashboard')" class="flat-btn flat-surface-alt min-h-[44px] px-3.5 rounded-lg text-sm font-bold flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                </svg>
+                <span>Kembali</span>
+              </button>
+              <h2 class="fluid-title font-extrabold tracking-tight">Inbound PO Supplier</h2>
+            </div>
+            <span id="inbound-po-status" class="text-xs font-code font-bold flat-surface-alt px-3 py-1.5 rounded-md">
+              STATUS: SENT
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-4 lg:gap-6 items-start">
+            <div class="md:col-span-5 flat-surface p-4 rounded-xl space-y-4">
+              <div>
+                <span class="text-xs font-code font-bold text-[var(--wms-accent-text)]">PO-202611-0003</span>
+                <h3 class="text-base font-extrabold mt-0.5">Supplier Contoh A</h3>
+                <p class="text-sm text-[var(--wms-muted)] mt-0.5">Dock 1 • Tempo 30 Hari</p>
+              </div>
+
+              <div class="pt-3 border-t border-[var(--wms-divider)]">
+                <div class="flex justify-between text-xs font-code mb-2">
+                  <span class="text-[var(--wms-muted)]">Progres Penerimaan</span>
+                  <span id="inbound-progress-label" class="font-bold">1 / 2 Item</span>
+                </div>
+                <div class="w-full bg-[var(--wms-surface-alt)] h-3 rounded-sm overflow-hidden">
+                  <div id="inbound-progress-bar" class="flat-progress-bar bg-[var(--wms-accent)] h-full w-full" style="transform: scaleX(0.5);"></div>
+                </div>
+              </div>
+
+              <button type="button" onclick="completeGrnReceiving()" class="flat-btn w-full bg-[var(--wms-ok)] text-[var(--wms-ok-ink)] font-extrabold min-h-[50px] rounded-lg text-sm">
+                Selesaikan Penerimaan Truk (GRN)
+              </button>
+            </div>
+
+            <div class="md:col-span-7 flat-surface rounded-xl divide-y divide-[var(--wms-divider)]">
+              <div class="p-4 flex items-center justify-between gap-3">
+                <div>
+                  <span class="text-xs font-bold text-[var(--wms-ok-text)]">Lengkap Diterima</span>
+                  <h4 class="text-sm font-extrabold mt-0.5">Roma Kelapa 300g</h4>
+                  <p class="text-xs text-[var(--wms-muted)] font-code">Batch: B-ROMA-001</p>
+                </div>
+                <span class="text-sm font-code font-extrabold text-[var(--wms-ok-text)] shrink-0">10 / 10 Dus</span>
+              </div>
+
+              <div id="inbound-item-2" class="p-4 space-y-3">
+                <div class="flex items-start justify-between gap-2">
+                  <div>
+                    <span id="inbound-item-2-status" class="text-xs font-bold text-[var(--wms-accent-text)]">Menunggu Hitung Fisik</span>
+                    <h4 class="text-sm font-extrabold mt-0.5">Beng-Beng Maxx 32g</h4>
+                    <p class="text-xs text-[var(--wms-muted)]">Pesanan PO: 20 Karton</p>
+                  </div>
+                  <span id="inbound-item-2-qty-badge" class="text-sm font-code font-extrabold text-[var(--wms-accent-text)] shrink-0">0 / 20 Ktn</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label for="inbound-qty-val" class="block text-xs font-bold text-[var(--wms-muted)] mb-1">Qty Masuk</label>
+                    <input type="number" id="inbound-qty-val" value="20" min="0" class="flat-input w-full min-h-[48px] px-3 rounded-lg font-code font-bold">
+                  </div>
+                  <div>
+                    <label for="inbound-batch-val" class="block text-xs font-bold text-[var(--wms-muted)] mb-1">Nomor Batch</label>
+                    <input type="text" id="inbound-batch-val" value="BB-202611-X" class="flat-input w-full min-h-[48px] px-3 rounded-lg font-code">
+                  </div>
+                </div>
+
+                <button type="button" onclick="confirmItemUnloaded()" class="flat-btn flat-surface-alt flat-hover-border w-full font-extrabold min-h-[48px] rounded-lg text-sm">
+                  Konfirmasi Item Diterima
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- SCREEN 5: OUTBOUND PICKING                 -->
+        <!-- ========================================== -->
+        <section id="screen-picking" class="screen-view hidden space-y-4">
+          <div class="hidden lg:flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <button type="button" onclick="switchScreen('dashboard')" class="flat-btn flat-surface-alt min-h-[44px] px-3.5 rounded-lg text-sm font-bold flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                </svg>
+                <span>Kembali</span>
+              </button>
+              <h2 class="fluid-title font-extrabold tracking-tight">Outbound Picking</h2>
+            </div>
+            <span class="text-xs font-code font-bold flat-surface-alt px-3 py-1.5 rounded-md">SIAP KIRIM</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-4 lg:gap-6 items-start">
+            <div class="md:col-span-5 space-y-4">
+              <div class="flat-surface p-4 rounded-xl">
+                <span class="text-xs font-code font-bold text-[var(--wms-accent-text)]">ORD-00108</span>
+                <h3 class="text-base font-extrabold mt-0.5">Order Toko Mitra 01</h3>
+                <p class="text-sm text-[var(--wms-muted)] mt-0.5">Armada: Mobil Box 02</p>
+              </div>
+
+              <div class="flat-surface p-4 rounded-xl border-2 border-[var(--wms-accent)] space-y-3">
+                <label for="picking-barcode-val" class="block text-sm font-extrabold">Verifikasi Barcode Barang</label>
+                <div class="flex gap-2">
+                  <input type="text" id="picking-barcode-val" value="899123456024" class="flat-input flex-1 min-h-[48px] px-3 rounded-lg font-code min-w-0">
+                  <button type="button" onclick="verifyItemBarcode()" class="flat-btn flat-hover-accent bg-[var(--wms-accent)] text-[var(--wms-accent-ink)] font-extrabold px-5 min-h-[48px] rounded-lg text-sm shrink-0">
+                    Cek
+                  </button>
+                </div>
+                <p class="text-xs font-code text-[var(--wms-muted)]">
+                  Uji: 899222333444 (Sosro) / 899123456024 (Kopi)
+                </p>
+                <p id="picking-verify-msg" class="hidden text-xs font-bold text-[var(--wms-ok-text)]">
+                  Barang terverifikasi sesuai pesanan.
+                </p>
+              </div>
+            </div>
+
+            <div class="md:col-span-7 space-y-4">
+              <div class="flat-surface rounded-xl divide-y divide-[var(--wms-divider)]">
+                <div class="px-4 py-3 border-b border-[var(--wms-divider)]">
+                  <h3 class="text-sm font-extrabold">Checklist Pengambilan Rak</h3>
+                </div>
+                <div id="pick-item-1" class="p-4 flex items-center justify-between gap-3">
+                  <div>
+                    <span class="text-xs font-code text-[var(--wms-muted)]">Rak A1</span>
+                    <p class="text-sm font-bold">Teh Botol Sosro 250ml</p>
+                  </div>
+                  <span class="text-sm font-code font-extrabold text-[var(--wms-ok-text)] shrink-0">5 / 5 Dus</span>
+                </div>
+                <div id="pick-item-2" class="p-4 flex items-center justify-between gap-3">
+                  <div>
+                    <span class="text-xs font-code text-[var(--wms-muted)]">Rak C3</span>
+                    <p class="text-sm font-bold">Kopi Kapal Api Special 65g</p>
+                  </div>
+                  <span id="pick-item-2-qty" class="text-sm font-code font-extrabold text-[var(--wms-accent-text)] shrink-0">0 / 3 Dus</span>
+                </div>
+              </div>
+
+              <button type="button" onclick="finishPickingOrder()" class="flat-btn flat-hover-accent w-full bg-[var(--wms-accent)] text-[var(--wms-accent-ink)] font-extrabold min-h-[50px] rounded-lg text-sm">
+                Selesaikan Packing &amp; Surat Jalan
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- SCREEN 6: MUTASI ANTAR-GUDANG              -->
+        <!-- ========================================== -->
+        <section id="screen-transfer" class="screen-view hidden space-y-4">
+          <div class="hidden lg:flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <button type="button" onclick="switchScreen('dashboard')" class="flat-btn flat-surface-alt min-h-[44px] px-3.5 rounded-lg text-sm font-bold flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                </svg>
+                <span>Kembali</span>
+              </button>
+              <h2 class="fluid-title font-extrabold tracking-tight">Mutasi Antar-Gudang</h2>
+            </div>
+            <span class="text-xs font-code font-bold bg-[var(--wms-ok)] text-[var(--wms-ok-ink)] px-3 py-1.5 rounded-md">
+              IN-TRANSIT
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-4 lg:gap-6 items-start">
+            <div class="md:col-span-5 flat-surface p-4 rounded-xl space-y-3">
+              <span class="text-xs font-code font-bold text-[var(--wms-ok-text)]">TRF-202611-0002</span>
+              <div class="grid grid-cols-2 gap-3 pt-1">
+                <div>
+                  <p class="text-xs text-[var(--wms-muted)]">Dari</p>
+                  <p class="text-sm font-extrabold mt-0.5">Gudang Pusat</p>
+                </div>
+                <div>
+                  <p class="text-xs text-[var(--wms-muted)]">Tujuan</p>
+                  <p class="text-sm font-extrabold mt-0.5">Gudang Cabang</p>
+                </div>
+              </div>
+              <p class="text-xs text-[var(--wms-muted)] pt-3 border-t border-[var(--wms-divider)]">
+                Armada Angkut: Truk Engkel (Mutasi Internal)
+              </p>
+            </div>
+
+            <div class="md:col-span-7 flat-surface p-4 rounded-xl space-y-4">
+              <div class="flex items-center justify-between gap-3 pb-3 border-b border-[var(--wms-divider)]">
+                <div>
+                  <h3 class="text-sm font-extrabold">Teh Botol Sosro 250ml</h3>
+                  <p class="text-xs font-code text-[var(--wms-muted)]">Surat Jalan: 10 Dus (240 Pcs)</p>
+                </div>
+                <span class="text-sm font-code font-extrabold text-[var(--wms-ok-text)] shrink-0">10 Dus</span>
+              </div>
+
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <label for="transfer-received-qty" class="text-sm font-bold">Jumlah Fisik Diterima (Dus)</label>
+                <input id="transfer-received-qty" type="number" value="10" min="0" class="flat-input w-full sm:w-28 min-h-[48px] px-3 text-center rounded-lg font-code font-extrabold">
+              </div>
+
+              <button type="button" onclick="confirmStockTransferIn()" class="flat-btn w-full bg-[var(--wms-ok)] text-[var(--wms-ok-ink)] font-extrabold min-h-[50px] rounded-lg text-sm">
+                Konfirmasi Barang Mutasi Diterima
+              </button>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- MOBILE BOTTOM NAVIGATION (Flat Tactile Capsule Pill + Solid/Outline SVG Pairs; < 768px) -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[var(--wms-surface)] border-t border-[var(--wms-divider)] mobile-bottom-nav" aria-label="Menu bawah gudang">
+    <div class="grid grid-cols-4 gap-2 px-3 pt-2 max-w-md mx-auto">
+      <button type="button" onclick="switchScreen('dashboard')" id="mob-nav-dashboard" aria-current="page" class="mob-nav-btn flat-btn min-h-[54px] flex flex-col items-center justify-center gap-1 text-[var(--wms-muted)]">
+        <span class="mob-pill w-14 h-8 rounded-full flex items-center justify-center">
+          <svg class="icon-outline w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          <svg class="icon-solid w-5 h-5 fill-current" viewBox="0 0 20 20" aria-hidden="true"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
+        </span>
+        <span class="mob-label text-xs font-semibold leading-none">Beranda</span>
+      </button>
+
+      <button type="button" onclick="switchScreen('scanner')" id="mob-nav-scanner" class="mob-nav-btn flat-btn min-h-[54px] flex flex-col items-center justify-center gap-1 text-[var(--wms-muted)]">
+        <span class="mob-pill w-14 h-8 rounded-full flex items-center justify-center">
+          <svg class="icon-outline w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7V5a1 1 0 011-1h2M17 4h2a1 1 0 011 1v2M4 17v2a1 1 0 001 1h2M17 20h2a1 1 0 001-1v-2M7 12h10"/></svg>
+          <svg class="icon-solid w-5 h-5 fill-current" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7V5a2 2 0 012-2h2v2H5v2H3zm14-4h2a2 2 0 012 2v2h-2V5h-2V3zM3 17h2v2h2v2H5a2 2 0 01-2-2v-2zm16 0h2v2a2 2 0 01-2 2h-2v-2h2v-2zM6 11h12v2H6v-2z"/></svg>
+        </span>
+        <span class="mob-label text-xs font-semibold leading-none">Scan</span>
+      </button>
+
+      <button type="button" onclick="switchScreen('opname')" id="mob-nav-opname" class="mob-nav-btn flat-btn min-h-[54px] flex flex-col items-center justify-center gap-1 text-[var(--wms-muted)]">
+        <span class="mob-pill w-14 h-8 rounded-full flex items-center justify-center">
+          <svg class="icon-outline w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+          <svg class="icon-solid w-5 h-5 fill-current" viewBox="0 0 20 20" aria-hidden="true"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
+        </span>
+        <span class="mob-label text-xs font-semibold leading-none">Opname</span>
+      </button>
+
+      <button type="button" onclick="openMobileSheet()" id="mob-nav-menu" aria-haspopup="dialog" aria-expanded="false" class="mob-nav-btn flat-btn min-h-[54px] flex flex-col items-center justify-center gap-1 text-[var(--wms-muted)]">
+        <span class="mob-pill w-14 h-8 rounded-full flex items-center justify-center">
+          <svg class="icon-outline w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+          <svg class="icon-solid w-5 h-5 fill-current" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+        </span>
+        <span class="mob-label text-xs font-semibold leading-none">Modul</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ACCESSIBLE MOBILE DRAWER FOR SECONDARY WORKFLOWS & SIMULATOR STATES -->
+  <div id="mobile-sheet-backdrop" data-open="false" class="flat-sheet-backdrop md:hidden" onclick="closeMobileSheet()"></div>
+  <div id="mobile-sheet-panel" data-open="false" class="flat-sheet-panel md:hidden" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <div class="flex items-center justify-between gap-3 pb-3 border-b border-[var(--wms-divider)]">
+      <h2 id="sheet-title" class="text-base font-extrabold">Modul &amp; Simulasi Status</h2>
+      <button type="button" onclick="closeMobileSheet()" class="flat-btn flat-surface-alt min-h-[44px] px-3.5 rounded-lg text-xs font-bold">
+        Tutup
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 gap-2 mt-3">
+      <button type="button" onclick="switchScreen('inbound'); closeMobileSheet();" class="flat-btn flat-surface-alt min-h-[50px] px-4 rounded-lg text-left text-sm font-bold flex items-center justify-between">
+        <span>Inbound PO Supplier</span>
+        <span class="font-code text-xs text-[var(--wms-muted)]">PO</span>
+      </button>
+      <button type="button" onclick="switchScreen('picking'); closeMobileSheet();" class="flat-btn flat-surface-alt min-h-[50px] px-4 rounded-lg text-left text-sm font-bold flex items-center justify-between">
+        <span>Outbound Picking Order</span>
+        <span class="font-code text-xs text-[var(--wms-muted)]">ORD</span>
+      </button>
+      <button type="button" onclick="switchScreen('transfer'); closeMobileSheet();" class="flat-btn flat-surface-alt min-h-[50px] px-4 rounded-lg text-left text-sm font-bold flex items-center justify-between">
+        <span>Mutasi Antar-Gudang</span>
+        <span class="font-code text-xs text-[var(--wms-muted)]">TRF</span>
+      </button>
+    </div>
+
+    <div class="mt-4 pt-3 border-t border-[var(--wms-divider)]">
+      <p class="text-xs font-bold text-[var(--wms-muted)] mb-2">Simulasi Status Data Beranda</p>
+      <div class="grid grid-cols-4 gap-2">
+        <button type="button" onclick="switchScreen('dashboard'); setAppDataState('normal'); closeMobileSheet();" data-state-btn="normal" class="flat-btn min-h-[44px] rounded text-xs font-bold bg-[var(--wms-accent)] text-[var(--wms-accent-ink)]">Normal</button>
+        <button type="button" onclick="switchScreen('dashboard'); setAppDataState('loading'); closeMobileSheet();" data-state-btn="loading" class="flat-btn flat-surface-alt min-h-[44px] rounded text-xs font-bold">Memuat</button>
+        <button type="button" onclick="switchScreen('dashboard'); setAppDataState('empty'); closeMobileSheet();" data-state-btn="empty" class="flat-btn flat-surface-alt min-h-[44px] rounded text-xs font-bold">Kosong</button>
+        <button type="button" onclick="switchScreen('dashboard'); setAppDataState('error'); closeMobileSheet();" data-state-btn="error" class="flat-btn flat-surface-alt min-h-[44px] rounded text-xs font-bold">Error</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SCREEN_META = {
+      dashboard: { title: 'Shift Gudang', sub: 'Gudang Utama • Simulasi' },
+      scanner: { title: 'Quick Scanner', sub: 'Barcode Dus & SKU Ecer' },
+      opname: { title: 'Stock Opname', sub: 'Lorong B2 • Pending' },
+      inbound: { title: 'Inbound PO', sub: 'PO-202611-0003 • Dock 1' },
+      picking: { title: 'Outbound Picking', sub: 'ORD-00108 • Siap Muat' },
+      transfer: { title: 'Mutasi Gudang', sub: 'TRF-202611-0002 • In-Transit' }
+    };
+
+    let sharedAudioCtx = null;
+    function playBeep(type = 'success') {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        if (!sharedAudioCtx) sharedAudioCtx = new AudioCtx();
+        if (sharedAudioCtx.state === 'suspended') sharedAudioCtx.resume();
+
+        const osc = sharedAudioCtx.createOscillator();
+        const gain = sharedAudioCtx.createGain();
+        if (type === 'success') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(1046.5, sharedAudioCtx.currentTime);
+          gain.gain.setValueAtTime(0.11, sharedAudioCtx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.001, sharedAudioCtx.currentTime + 0.11);
+          osc.connect(gain);
+          gain.connect(sharedAudioCtx.destination);
+          osc.start();
+          osc.stop(sharedAudioCtx.currentTime + 0.11);
+        } else {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(220, sharedAudioCtx.currentTime);
+          gain.gain.setValueAtTime(0.14, sharedAudioCtx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.001, sharedAudioCtx.currentTime + 0.18);
+          osc.connect(gain);
+          gain.connect(sharedAudioCtx.destination);
+          osc.start();
+          osc.stop(sharedAudioCtx.currentTime + 0.18);
+        }
+      } catch (e) {}
+    }
+
+    // Interruptible Toast with velocity swipe-up dismissal
+    let toastTimer = null;
+    let isToastPaused = false;
+    let toastStartY = 0;
+    let toastStartTime = 0;
+    let isToastDragging = false;
+
+    const toastEl = document.getElementById('wms-toast');
+    const toastBox = document.getElementById('toast-box');
+
+    function triggerToast(title, body, isSuccess = true) {
+      playBeep(isSuccess ? 'success' : 'error');
+      const indicator = document.getElementById('toast-indicator');
+      document.getElementById('toast-title').innerText = title;
+      document.getElementById('toast-body').innerText = body;
+
+      const color = isSuccess ? 'var(--wms-ok)' : 'var(--wms-err-border)';
+      toastBox.style.borderColor = color;
+      indicator.style.backgroundColor = color;
+
+      toastEl.style.transform = '';
+      toastEl.setAttribute('data-open', 'true');
+      scheduleToastClose();
+    }
+
+    function scheduleToastClose() {
+      clearTimeout(toastTimer);
+      if (isToastPaused) return;
+      toastTimer = setTimeout(() => hideToast(), 2800);
+    }
+
+    function hideToast() {
+      clearTimeout(toastTimer);
+      toastEl.style.transform = '';
+      toastEl.setAttribute('data-open', 'false');
+    }
+
+    toastEl.addEventListener('pointerdown', (e) => {
+      if (isToastDragging || e.target.closest('button')) return;
+      isToastDragging = true;
+      isToastPaused = true;
+      clearTimeout(toastTimer);
+      toastStartY = e.clientY;
+      toastStartTime = Date.now();
+      toastEl.setPointerCapture(e.pointerId);
+    });
+
+    toastEl.addEventListener('pointermove', (e) => {
+      if (!isToastDragging) return;
+      const deltaY = e.clientY - toastStartY;
+      const offset = deltaY < 0 ? deltaY : Math.min(20, deltaY * 0.25);
+      toastEl.style.transform = `translateY(${offset}px)`;
+    });
+
+    toastEl.addEventListener('pointerup', (e) => {
+      if (!isToastDragging) return;
+      isToastDragging = false;
+      isToastPaused = false;
+      const deltaY = e.clientY - toastStartY;
+      const elapsed = Math.max(1, Date.now() - toastStartTime);
+      const velocity = Math.abs(deltaY) / elapsed;
+      if (deltaY < -28 || (deltaY < -8 && velocity > 0.11)) {
+        hideToast();
+      } else {
+        toastEl.style.transform = '';
+        scheduleToastClose();
+      }
+    });
+
+    function openMobileSheet() {
+      document.getElementById('mobile-sheet-backdrop').setAttribute('data-open', 'true');
+      document.getElementById('mobile-sheet-panel').setAttribute('data-open', 'true');
+      document.getElementById('mob-nav-menu').setAttribute('aria-expanded', 'true');
+    }
+
+    function closeMobileSheet() {
+      document.getElementById('mobile-sheet-backdrop').setAttribute('data-open', 'false');
+      document.getElementById('mobile-sheet-panel').setAttribute('data-open', 'false');
+      document.getElementById('mob-nav-menu').setAttribute('aria-expanded', 'false');
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const panel = document.getElementById('mobile-sheet-panel');
+        if (panel && panel.getAttribute('data-open') === 'true') {
+          closeMobileSheet();
+          document.getElementById('mob-nav-menu').focus();
+        }
+      }
+    });
+
+    function setWmsTheme(mode) {
+      document.documentElement.setAttribute('data-theme', mode);
+      document.getElementById('theme-icon-sun').classList.toggle('hidden', mode === 'light');
+      document.getElementById('theme-icon-moon').classList.toggle('hidden', mode === 'dark');
+
+      const darkBtn = document.getElementById('desk-theme-dark');
+      const lightBtn = document.getElementById('desk-theme-light');
+      if (darkBtn && lightBtn) {
+        if (mode === 'dark') {
+          darkBtn.className = 'flat-btn min-h-[44px] px-2.5 rounded-md text-xs font-bold bg-[var(--wms-accent)] text-[var(--wms-accent-ink)]';
+          lightBtn.className = 'flat-btn flat-surface-alt min-h-[44px] px-2.5 rounded-md text-xs font-bold text-[var(--wms-text)]';
+        } else {
+          lightBtn.className = 'flat-btn min-h-[44px] px-2.5 rounded-md text-xs font-bold bg-[var(--wms-accent)] text-[var(--wms-accent-ink)]';
+          darkBtn.className = 'flat-btn flat-surface-alt min-h-[44px] px-2.5 rounded-md text-xs font-bold text-[var(--wms-text)]';
+        }
+      }
+    }
+
+    function toggleWmsTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      setWmsTheme(current === 'dark' ? 'light' : 'dark');
+    }
+
+    function setAppDataState(stateName) {
+      ['normal', 'loading', 'empty', 'error'].forEach((name) => {
+        const el = document.getElementById('dash-state-' + name);
+        if (el) el.classList.toggle('hidden', name !== stateName);
+      });
+
+      document.querySelectorAll('[data-state-btn]').forEach((btn) => {
+        const active = btn.getAttribute('data-state-btn') === stateName;
+        if (active) {
+          btn.classList.remove('flat-surface-alt', 'text-[var(--wms-text)]');
+          btn.classList.add('bg-[var(--wms-accent)]', 'text-[var(--wms-accent-ink)]');
+        } else {
+          btn.classList.remove('bg-[var(--wms-accent)]', 'text-[var(--wms-accent-ink)]');
+          btn.classList.add('flat-surface-alt', 'text-[var(--wms-text)]');
+        }
+      });
+    }
+
+    function switchScreen(screenName) {
+      document.querySelectorAll('.screen-view').forEach((el) => el.classList.add('hidden'));
+      const target = document.getElementById('screen-' + screenName);
+      if (target) target.classList.remove('hidden');
+
+      const meta = SCREEN_META[screenName] || SCREEN_META.dashboard;
+      document.getElementById('mobile-header-title').innerText = meta.title;
+      document.getElementById('mobile-header-sub').innerText = meta.sub;
+
+      // Mobile header swaps between Brand Icon (on Dashboard) and Back Button (on Sub-screens)
+      const isHome = screenName === 'dashboard';
+      document.getElementById('mob-top-brand').classList.toggle('hidden', !isHome);
+      document.getElementById('mob-top-back').classList.toggle('hidden', isHome);
+      document.getElementById('mob-flash-btn').classList.toggle('hidden', screenName !== 'scanner');
+
+      // Desktop Rail Sync
+      document.querySelectorAll('[id^="rail-nav-"]').forEach((btn) => {
+        const isActive = btn.id === 'rail-nav-' + screenName;
+        btn.setAttribute('aria-current', isActive ? 'page' : 'false');
+        btn.className = isActive
+          ? 'flat-btn flat-hover-surface w-full min-h-[46px] px-3 rounded-lg text-left text-sm font-bold flex items-center justify-between bg-[var(--wms-accent)] text-[var(--wms-accent-ink)]'
+          : 'flat-btn flat-hover-surface w-full min-h-[46px] px-3 rounded-lg text-left text-sm font-bold flex items-center justify-between text-[var(--wms-text)]';
+      });
+
+      // Tablet Top Tabs Sync
+      document.querySelectorAll('[id^="tab-nav-"]').forEach((btn) => {
+        const isActive = btn.id === 'tab-nav-' + screenName;
+        btn.setAttribute('aria-current', isActive ? 'page' : 'false');
+        btn.className = isActive
+          ? 'flat-btn min-h-[44px] px-3.5 rounded-md text-xs font-bold bg-[var(--wms-accent)] text-[var(--wms-accent-ink)] shrink-0'
+          : 'flat-btn flat-surface-alt min-h-[44px] px-3.5 rounded-md text-xs font-bold shrink-0';
+      });
+
+      // Mobile 4-Tab Capsule Sync
+      const primaryMob = ['dashboard', 'scanner', 'opname'];
+      const activeMobId = primaryMob.includes(screenName) ? 'mob-nav-' + screenName : 'mob-nav-menu';
+      document.querySelectorAll('[id^="mob-nav-"]').forEach((btn) => {
+        const isActive = btn.id === activeMobId;
+        btn.setAttribute('aria-current', isActive ? 'page' : 'false');
+      });
+
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+
+    let isFlashActive = false;
+    function toggleFlash() {
+      isFlashActive = !isFlashActive;
+      const desktopBtn = document.getElementById('flash-toggle');
+      const mobileBtn = document.getElementById('mob-flash-btn');
+      const label = document.getElementById('flash-label');
+
+      [desktopBtn, mobileBtn].forEach((b) => {
+        if (b) b.setAttribute('aria-pressed', isFlashActive ? 'true' : 'false');
+      });
+
+      if (isFlashActive) {
+        if (label) label.innerText = 'NYALA';
+        if (desktopBtn) desktopBtn.className = 'flat-btn min-h-[44px] px-4 rounded-lg text-xs font-extrabold bg-[var(--wms-accent)] text-[var(--wms-accent-ink)]';
+        if (mobileBtn) mobileBtn.className = 'flat-btn w-11 h-11 rounded-lg flex items-center justify-center bg-[var(--wms-accent)] text-[var(--wms-accent-ink)]';
+        triggerToast('Senter LED Aktif', 'Pencahayaan kamera tambahan diaktifkan.');
+      } else {
+        if (label) label.innerText = 'MATI';
+        if (desktopBtn) desktopBtn.className = 'flat-btn flat-surface-alt min-h-[44px] px-4 rounded-lg text-xs font-bold';
+        if (mobileBtn) mobileBtn.className = 'flat-btn flat-surface-alt w-11 h-11 rounded-lg flex items-center justify-center';
+      }
+    }
+
+    function simulateScan(mode) {
+      const laser = document.getElementById('scanner-laser');
+      const card = document.getElementById('scan-result-card');
+      const badge = document.getElementById('scan-pack-badge');
+      const title = document.getElementById('scan-prod-title');
+      const code = document.getElementById('scan-barcode-code');
+
+      laser.classList.remove('is-scanning');
+      void laser.offsetWidth;
+      laser.classList.add('is-scanning');
+
+      card.setAttribute('data-updating', 'true');
+      setTimeout(() => {
+        if (mode === 'dus') {
+          badge.innerText = 'KEMASAN DUS (ISI 24 PCS)';
+          badge.className = 'inline-block bg-[var(--wms-accent)] text-[var(--wms-accent-ink)] text-xs font-code font-bold px-2.5 py-1 rounded';
+          title.innerText = 'Kopi Kapal Api Special 65g';
+          code.innerText = '899123456024';
+          triggerToast('Barcode Dus Terverifikasi', 'Kopi Kapal Api 65g (Dus isi 24). Stok: 120 Pcs.');
+        } else {
+          badge.innerText = 'SATUAN DASAR (PCS)';
+          badge.className = 'inline-block bg-[var(--wms-ok)] text-[var(--wms-ok-ink)] text-xs font-code font-bold px-2.5 py-1 rounded';
+          title.innerText = 'Kopi Kapal Api Special 65g (Pcs)';
+          code.innerText = 'SKU-KOPI-65G';
+          triggerToast('SKU Pcs Terverifikasi', 'Kopi Kapal Api 65g (Satuan Pcs). Stok: 120 Pcs.');
+        }
+        card.setAttribute('data-updating', 'false');
+      }, 95);
+    }
+
+    let opnameUnit = 'pcs';
+    function setOpnameUnit(unit) {
+      opnameUnit = unit;
+      const overlay = document.getElementById('opname-unit-overlay');
+      const caption = document.getElementById('opname-unit-caption');
+      if (unit === 'pcs') {
+        overlay.setAttribute('data-active-index', '0');
+        caption.innerText = 'Pcs Fisik';
+      } else {
+        overlay.setAttribute('data-active-index', '1');
+        caption.innerText = 'Dus Fisik (1 Dus = 12 Pcs)';
+      }
+      calcOpnameDifference();
+    }
+
+    function changeOpnameCount(delta) {
+      const field = document.getElementById('opname-qty-field');
+      let val = parseInt(field.value, 10) || 0;
+      val = Math.max(0, val + delta);
+      field.value = val;
+      calcOpnameDifference();
+    }
+
+    function calcOpnameDifference() {
+      const field = document.getElementById('opname-qty-field');
+      const diffEl = document.getElementById('opname-diff-val');
+      const count = Math.max(0, parseInt(field.value, 10) || 0);
+      const totalBase = count * (opnameUnit === 'dus' ? 12 : 1);
+      const diff = totalBase - 50;
+
+      if (diff > 0) {
+        diffEl.innerText = '+' + diff + ' Pcs';
+        diffEl.className = 'text-base font-extrabold text-[var(--wms-ok-text)]';
+      } else if (diff < 0) {
+        diffEl.innerText = diff + ' Pcs';
+        diffEl.className = 'text-base font-extrabold text-[var(--wms-err-text)]';
+      } else {
+        diffEl.innerText = '0 Pcs (Cocok)';
+        diffEl.className = 'text-base font-extrabold text-[var(--wms-ok-text)]';
+      }
+    }
+
+    function submitOpnameRecord() {
+      triggerToast('Opname Tersimpan', 'Status PENDING dibuat. Menunggu approval Admin atau Owner.');
+      setTimeout(() => switchScreen('dashboard'), 1200);
+    }
+
+    function verifyItemBarcode() {
+      const val = document.getElementById('picking-barcode-val').value.trim().toLowerCase();
+      const msg = document.getElementById('picking-verify-msg');
+
+      if (val === '899222333444' || val === 'sku-teh-botol') {
+        msg.classList.remove('hidden');
+        msg.innerText = 'Teh Botol Sosro 250ml terverifikasi (5 / 5 Dus).';
+        triggerToast('Barang Sesuai', 'Teh Botol Sosro 250ml cocok dengan ORD-00108.');
+      } else if (val === '899123456024' || val === 'sku-kopi-65g') {
+        msg.classList.remove('hidden');
+        msg.innerText = 'Kopi Kapal Api Special 65g terverifikasi (3 / 3 Dus).';
+        const qty2 = document.getElementById('pick-item-2-qty');
+        qty2.innerText = '3 / 3 Dus';
+        qty2.className = 'text-sm font-code font-extrabold text-[var(--wms-ok-text)] shrink-0';
+        triggerToast('Picking Lengkap', 'Kopi Kapal Api 65g selesai diverifikasi (3/3 Dus).');
+      } else {
+        msg.classList.add('hidden');
+        triggerToast('Barcode Tidak Cocok', 'Barang ini bukan bagian dari pesanan ORD-00108.', false);
+      }
+    }
+
+    function finishPickingOrder() {
+      triggerToast('Packing Selesai', 'Surat Jalan ORD-00108 siap dimuat ke armada.');
+      setTimeout(() => switchScreen('dashboard'), 1200);
+    }
+
+    function confirmItemUnloaded() {
+      const qty = Math.max(0, parseInt(document.getElementById('inbound-qty-val').value, 10) || 0);
+      const batch = document.getElementById('inbound-batch-val').value.trim() || 'BB-202611-X';
+      const status2 = document.getElementById('inbound-item-2-status');
+      const badge2 = document.getElementById('inbound-item-2-qty-badge');
+
+      status2.innerText = 'Lengkap Diterima';
+      status2.className = 'text-xs font-bold text-[var(--wms-ok-text)]';
+      badge2.innerText = `${qty} / 20 Ktn`;
+      badge2.className = 'text-sm font-code font-extrabold text-[var(--wms-ok-text)] shrink-0';
+
+      document.getElementById('inbound-progress-label').innerText = '2 / 2 Item';
+      const bar = document.getElementById('inbound-progress-bar');
+      bar.style.transform = 'scaleX(1)';
+      bar.style.backgroundColor = 'var(--wms-ok)';
+
+      triggerToast('Item Diverifikasi', `Beng-Beng Maxx (${qty} Ktn, Batch ${batch}) tercatat.`);
+    }
+
+    function completeGrnReceiving() {
+      const poBadge = document.getElementById('inbound-po-status');
+      poBadge.innerText = 'STATUS: RECEIVED';
+      poBadge.className = 'text-xs font-code font-bold bg-[var(--wms-ok)] text-[var(--wms-ok-ink)] px-3 py-1.5 rounded-md';
+      triggerToast('Penerimaan GRN Selesai', 'Stok bertambah dan faktur pembelian supplier dibuat.');
+      setTimeout(() => switchScreen('dashboard'), 1200);
+    }
+
+    function confirmStockTransferIn() {
+      const qty = Math.max(0, parseInt(document.getElementById('transfer-received-qty').value, 10) || 0);
+      triggerToast('Mutasi Diterima', `${qty} Dus Teh Botol Sosro masuk ke Gudang Cabang.`);
+      setTimeout(() => switchScreen('dashboard'), 1200);
+    }
+  </script>
+</body>
+</html>
