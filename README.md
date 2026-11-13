@@ -1,8 +1,8 @@
 # 📱 Grosera Warehouse App (WMS Mobile Scanner)
 
-> **Antarmuka Mobile & Scanner Staf Gudang untuk Ekosistem Grosera**  
-> Dibuat: 8 November 2026  
-> Status: **Tahap Desain & Mockup UI/UX Pro Max**
+> **Aplikasi Client & Antarmuka Mobile Staf Gudang (Laravel 12 / NativePHP) untuk Ekosistem Grosera**  
+> Dibuat: 8 November 2026 · Diimplementasikan: 13 November 2026  
+> Status: **Aplikasi Client Aktif (Laravel 12 + NativePHP + Flat Design UI)**
 
 ---
 
@@ -49,4 +49,18 @@ Di dalam mockup, Anda dapat:
 - Menekan tombol **"Simulasi Scan Barcode"** untuk mendengar bunyi *beep scanner* dan melihat hasil deteksi instan.
 - Menekan tombol `+` dan `−` pada kalkulasi Opname untuk melihat perubahan angka selisih secara otomatis.
 - Menekan tombol **"Flash"** untuk menyalakan simulasi lampu senter ponsel.
+
+---
+
+## 🚀 4. Menjalankan Aplikasi Laravel Client (`warehouse_app`)
+
+1. Pastikan backend `moderngrosir_laravel` aktif (default `http://127.0.0.1:8000/api`) atau sesuaikan `MODERNGROSIR_API_URL` di `.env`.
+2. Jalankan server lokal atau NativePHP Mobile:
+   ```bash
+   php artisan serve --port=8002
+   ```
+3. Jalankan suite tes fitur (`Http::fake` untuk seluruh modul API `/api/warehouse/*`):
+   ```bash
+   php vendor/bin/phpunit
+   ```
 

@@ -1,0 +1,19 @@
+:root {
+  --grosera-orange: #FF783F;
+  --grosera-orange-hover: #F26732;
+  --grosera-orange-soft: #FFF3EB;
+  --grosera-orange-subtle: #FFE9DC;
+  --grosera-orange-ring: rgba(255, 120, 63, 0.25);
+  --grosera-navy: #0F172A;
+  --grosera-bg: #FFFFFF;
+  --grosera-text: #0F172A;
+  --grosera-tagline: #4A566C;
+}
+[data-theme="dark"] {
+  --grosera-orange-soft: rgba(255, 120, 63, 0.12);
+  --grosera-orange-subtle: rgba(255, 120, 63, 0.2);
+  --grosera-orange-ring: rgba(255, 120, 63, 0.4);
+  --grosera-bg: #0F172A;
+  --grosera-text: #FFFFFF;
+  --grosera-tagline: #CBD5E1;
+}
